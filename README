@@ -1,0 +1,114 @@
+Notch - a Network Operator's Toolkit for Command-line Hacking.
+
+Copyright 2010 Andrew Fort
+
+Project page: http://code.google.com/p/notch/
+Users mailing list: http://groups.google.com/group/notch-users
+
+Installation:
+
+Pre-requisites:
+
+Python 2.6 Tornado (http://www.tornadoweb.org) plus a few RPC-related
+libraries for the JSON-RPC interface.
+
+Details:
+
+To setup, you'll need to install tornado-0.2, from tornadoweb.org.  It
+can merely be extracted to the tornado/ directory along-side this
+code, if you don't wish to install it into your Python.
+
+You'll need to use Python 2.6. This project hasn't been tested with
+Python 3.0, but does use the odd 2.5+ feature.
+
+You'll need some pre-requisite libraries.  Some are available via
+easy-install:
+
+$ sudo easy_install mox ipaddr
+
+However, some aren't, so grab the jsonrpclib and tornadorpc libraries
+from Google code hosting:
+
+http://code.google.com/p/jsonrpclib/
+http://code.google.com/p/tornadorpc/
+
+This should be all you need to get running.
+
+You'll need to build a configuration file, nominally ./notch.yaml to
+begin.  The file is in YAML format (http://www.yaml.org). Never use
+tabs to indent YAML files.
+ 
+You'll also need to either have RANCID router.db files around (so that
+we know what device is of what sort), and you'll need to have a
+credentials (or password) file around.
+
+For now, prior to more complete documentation, here's an example of
+both configuration files you'll need to get developing or using this:
+
+Notes for notch.yaml:
+
+"device_sources" is a required section.  You'll also require a
+"options" section with a "credentials" attribute (filename to the
+credentials YAML file).  In "device_sources", you can have multiple
+sections pointing at different provider types. There's a DNS TXT
+provider ('dnstxt'), if you want to build things that way (see the
+code for now in device_manager.py, DnsTxtDeviceProvider class).  But
+easier is to use what you may already have, RANCID router.db config
+files ('router.db' provider attribute).
+
+You can give full paths, though you can see it's not necessary; the
+relative root is from where agent.py is executed.
+
+Thus, provider: can either be 'router.db' or 'dnstxt'.
+
+Examples:
+
+------- snip: notch.yaml --------
+device_sources:
+    my_router_db_files:
+        provider: router.db
+        root: data/router_db/
+        ignore_down_devices: True
+
+options:
+    port: 8800
+    credentials: data/creds.yaml
+
+------- snip: notch.yaml --------
+
+Notes for creds.yaml (pointed to by the options/credentials:
+attribute, as seen above):
+
+Each record consists of a regexp field, defining which device names
+will match the credential following, and then a username field, which
+is mandatory.  One can then have a password field, an enable password
+field (not presently used, but will be for IOS like devices), and an
+SSH private key data field.  Do not include newlines or spaces in the
+private key data, as YAML will treat these as implicit newlines.
+
+The regexp field is automatically start-anchored, so you don't need to
+prefix with ^.
+
+------- snip: creds.yaml --------
+-
+  regexp: localhost
+  username: fred
+  password: not-cisco
+-
+  regexp: ar[0-9]+.*
+  username: nocuser
+  ssh_private_key: 098ads90ha20398.....
+
+------- snip: creds.yaml --------
+
+Example programs:
+
+At present, there's only a very basic example ./example_client.py,
+but this should give you some idea of the power (it'll login to your
+local unix box if you give the appropriate credentials and have a
+router.db entry like
+
+localhost:juniper:up
+
+..with an appropriate notch.yaml configuration file pointing at a root
+containing this router.db file).

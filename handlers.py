@@ -1,0 +1,242 @@
+#!/usr/bin/env python
+#
+# Copyright 2009 Andrew Fort. All Rights Reserved.
+
+"""Notch TornadoWeb Handlers.
+
+These handlers implement the server-side API using session and device
+objects.
+"""
+
+import cgi
+import functools
+import inspect
+import logging
+import pprint
+import sys
+import thread
+import threading
+import time
+import traceback
+
+import jsonrpclib
+
+import tornado.ioloop
+import tornado.options
+import tornado.web
+import tornadorpc.json
+import tornadorpc.base
+
+
+import errors
+import tp
+
+tornado.options.define('threadpool_num_threads', default=64,
+                       help='Number of threads to use in sync task threadpool.',
+                       type=int)
+
+
+# A threadpool used for synchronous tasks.
+_tp = tp.ThreadPool(tornado.options.options.threadpool_num_threads)
+
+
+class BaseHandler(tornado.web.RequestHandler):
+    """Base class for common request handler functionality."""
+
+
+class HomeHandler(BaseHandler):
+    """Handles the root page."""
+
+
+class ThreadsHandler(BaseHandler):
+    """Handles /_threads."""
+
+    def get(self):
+        self.set_header('Content-Type', 'Text/HTML')
+        table_head = ['<table>']
+        table_foot = ['</table>']
+        foot = ['</body></html>']
+        output = ['<html><head>']
+        head_end = ['</head><body>']
+        style = ['<style type="text/css">',
+                 '.code { font-family: monospace; }',
+                 '.heavy { font-weight: bold; }',
+                 '</style>']
+        output.extend(style)
+        output.extend(head_end)
+
+        globals_done = False
+        for f in sys._current_frames().itervalues():
+            if not globals_done:
+                output.append('<div>')
+                output.extend(table_head)
+                for k, v in f.f_globals.iteritems():
+                    if k.startswith('__'): continue
+                    output.append(
+                        '<tr><td class="heavy">%s</td><td class="code">%s</td>'
+                        % (cgi.escape(pprint.pformat(k)[1:-1]),
+                           cgi.escape(pprint.pformat(v)[1:-1])))
+
+                output.extend(table_foot)
+                output.append('</div>')
+                globals_done = True
+
+                output.append('<p>Thread objects')
+                output.extend(table_head)
+                threads = ['<tr><td class="heavy">Name</td><td class="heavy">'
+                           'Identifier</td></tr>']
+                for t in threading.enumerate():
+                    ident = str(t.ident)
+                    if t.ident is None:
+                        ident = '(not started)'
+
+                    threads.append('<tr><td class="heavy">%s</td>'
+                                   '<td class="code"><code>%s</code></td>'
+                                   % (cgi.escape(t.name), cgi.escape(ident)))
+                output.extend(threads)
+                output.extend(table_foot)
+
+            print dir(f.f_code)
+            print dir(f)
+            print str(f)
+
+            print inspect.getsource(f.f_code)
+            source_lines, n_lines = inspect.getsourcelines(f.f_code)
+            code = ['<hr />']
+            if source_lines:
+                code.append('%s lines of source' % len(source_lines))
+
+            code.extend(table_head)
+            for i in xrange(n_lines, len(source_lines)):
+                code.append('<tr><td>%s</td><td class="code">%s</td></tr>'
+                            % (cgi.escape(str(i)),
+                               cgi.escape(str(source_lines[i-n_lines]))))
+            code.extend(table_foot)
+            output.extend(code)
+
+
+            output.extend(table_head)
+            locals = []
+            for k, v in f.f_locals.iteritems():
+                if 'globals_done' == k:
+                    locals = []
+                    break
+                locals.append('<tr><td class="heavy">%s</td><td>%s</td>'
+                              % (cgi.escape(str(k)), cgi.escape(str(v))))
+
+            output.extend(locals)
+            output.extend(table_foot)
+
+
+
+            output.extend(foot)
+        self.write(' '.join(output))
+
+
+class Faults(tornadorpc.base.Faults):
+
+    codes = tornadorpc.base.Faults.codes.copy().update(errors.error_dictionary)
+
+
+class NotchJsonRpcParser(tornadorpc.json.JSONRPCParser):
+
+    @property
+    def faults(self):
+        return Faults(self)
+
+
+#TODO(afort): Merge into tornadorpc/base.py
+class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
+    _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
+
+    def _execute_rpc(self, request_body):
+        """Executes the RPC and sets the RPC response."""
+        response_data = self._RPC_.run(self, request_body)
+        self.set_header('Content-Type', self._RPC_.content_type)
+        self.write(response_data)
+        self.finish()
+
+    @tornado.web.asynchronous
+    def post(self):
+        """Multi-threaded JSON-RPC POST handler."""
+        self.controller = self.settings['controller']
+        _tp.put(self._execute_rpc, self.request.body)
+
+
+class NotchJsonRpcHandler(AsynchronousJSONRPCHandler):
+    """The Notch API as presented to JSON-RPC."""
+
+    def _handle_exception(self, exc):
+        # TODO(afort): Add specific error codes in errors.py
+        logging.error('%s: %s', str(exc.__class__), str(exc))
+        logging.error(traceback.format_exc())
+        return self.__class__._RPC_.faults.internal_error(str(exc))
+    
+    def command(self, **kwargs):
+        try:
+            return self.controller.request('command', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def get_config(self, **kwargs):
+        try:
+            return self.controller.request('get_config', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def set_config(self, **kwargs):
+        try:
+            return self.controller.request('set_config', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def copy_file(self, **kwargs):
+        try:
+            return self.controller.request('copy_file', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def upload_file(self, **kwargs):
+        try:
+            return self.controller.request('upload_file', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def download_file(self, **kwargs):
+        try:
+            return self.controller.request('download_file', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def delete_file(self, **kwargs):
+        try:
+            return self.controller.request('delete_file', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def lock(self, **kwargs):
+        try:
+            return self.controller.request('lock', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+    def unlock(self, **kwargs):
+        try:
+            return self.controller.request('unlock', **kwargs)
+        except errors.ApiError, e:
+            return self._handle_exception(exc)
+
+
+class StopHandler(tornado.web.RequestHandler):
+    """Request handler used to stop the Notch agent."""
+
+    def get(self):
+        logging.warn('Shutdown requested via HTTP server.')
+        self.stop()
+
+    def post(self):
+        return self.get()
+
+    @classmethod
+    def stop(cls):
+        tornado.ioloop.IOLoop.instance().stop()
