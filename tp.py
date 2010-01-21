@@ -91,6 +91,9 @@ class ThreadPool(object):
                 task, a, kwa = self._q_in.get(True, 1.0)
             except Queue.Empty:
                 continue
+            # During thread shutdown, Queue may == Null.
+            except AttributeError:
+                return
             try:
                 # Execute the work item.
                 task(*a, **kwa)
