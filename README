@@ -1,6 +1,6 @@
 Notch - a Network Operator's Toolkit for Command-line Hacking.
 
-Copyright 2010 Andrew Fort
+Copyright 2010, Andrew Fort.
 
 Project page: http://code.google.com/p/notch/
 Users mailing list: http://groups.google.com/group/notch-users
@@ -9,8 +9,14 @@ Installation:
 
 Pre-requisites:
 
-Python 2.6 Tornado (http://www.tornadoweb.org) plus a few RPC-related
-libraries for the JSON-RPC interface.
+1. Python 2.6
+2. Tornado (http://www.tornadoweb.org)
+3. The tornadorpc and jsonrpc libraries for the JSON-RPC interface
+4. GNU adns (and related Python module) for asynchronous DNS queries.
+
+This software has been developed on a Mac OS X 10.6 machine; building
+ADNS libraries from source may not be necessary on some Linux/BSD
+systems.
 
 Details:
 
@@ -18,21 +24,31 @@ To setup, you'll need to install tornado-0.2, from tornadoweb.org.  It
 can merely be extracted to the tornado/ directory along-side this
 code, if you don't wish to install it into your Python.
 
-You'll need to use Python 2.6. This project hasn't been tested with
-Python 3.0, but does use the odd 2.5+ feature.
+You'll need to use Python 2.5 or higher; we recommend Python 2.6. This
+project hasn't been tested with Python 3.0.
 
-You'll need some pre-requisite libraries.  Some are available via
-easy-install:
+On Mac OS X, you'll probably need to install the GNU ADNS libraries.
+Get them from http://www.chiark.greenend.org.uk/~ian/adns/. When
+configuring the package on OS X, disable dynamic library generation
+like so;
 
-$ sudo easy_install mox ipaddr
+$ ./configure --disable-dynamic
 
-However, some aren't, so grab the jsonrpclib and tornadorpc libraries
-from Google code hosting:
+(For more details, read ADNS' `INSTALL` file).  On Linux systems, you
+can configure like you would normally.
+
+You'll need some pre-requisite Python libraries.  Some are available
+via easy-install:
+
+$ sudo easy_install mox PyYAML ipaddr adns-python paramiko
+
+Some libraries aren't yet available via easy_install, so grab the
+jsonrpclib and tornadorpc libraries from Google code hosting:
 
 http://code.google.com/p/jsonrpclib/
 http://code.google.com/p/tornadorpc/
 
-This should be all you need to get running.
+Setup:
 
 You'll need to build a configuration file, nominally ./notch.yaml to
 begin.  The file is in YAML format (http://www.yaml.org). Never use
