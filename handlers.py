@@ -96,11 +96,6 @@ class ThreadsHandler(BaseHandler):
                 output.extend(threads)
                 output.extend(table_foot)
 
-            print dir(f.f_code)
-            print dir(f)
-            print str(f)
-
-            print inspect.getsource(f.f_code)
             source_lines, n_lines = inspect.getsourcelines(f.f_code)
             code = ['<hr />']
             if source_lines:
