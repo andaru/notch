@@ -9,9 +9,6 @@ the RPC server. Routine maintenance activities are also located here.
 """
 
 
-import adns
-import ADNS
-
 import collections
 import logging
 
@@ -137,13 +134,14 @@ class Controller(object):
           in error), or a string being the method response.
         """
         session = self.get_session(**kwargs)
-        if self.credentials and 'device_name' in kwargs:
-            session.credential = self.credentials.get_credential(
-                kwargs['device_name'])
 
         if session is None:
             raise errors.NoSessionCreatedError(
                 'No session available for request arguments %r' % kwargs)
+
+        if self.credentials and 'device_name' in kwargs:
+            session.credential = self.credentials.get_credential(
+                kwargs['device_name'])
         try:
             return session.request(method, **kwargs)
         except errors.ApiError, e:

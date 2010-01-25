@@ -171,55 +171,55 @@ class NotchJsonRpcHandler(AsynchronousJSONRPCHandler):
         try:
             return self.controller.request('command', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def get_config(self, **kwargs):
         try:
             return self.controller.request('get_config', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def set_config(self, **kwargs):
         try:
             return self.controller.request('set_config', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def copy_file(self, **kwargs):
         try:
             return self.controller.request('copy_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def upload_file(self, **kwargs):
         try:
             return self.controller.request('upload_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def download_file(self, **kwargs):
         try:
             return self.controller.request('download_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def delete_file(self, **kwargs):
         try:
             return self.controller.request('delete_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def lock(self, **kwargs):
         try:
             return self.controller.request('lock', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
     def unlock(self, **kwargs):
         try:
             return self.controller.request('unlock', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(exc)
+            return self._handle_exception(e)
 
 
 class StopHandler(tornado.web.RequestHandler):

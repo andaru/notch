@@ -12,7 +12,6 @@ Without this subsystem, device vendor information would have to be submitted
 by every client RPC.
 """
 
-
 import adns
 import ADNS
 import yaml
