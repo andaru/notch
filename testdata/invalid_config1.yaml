@@ -1,0 +1,4 @@
+options:
+    port: 8888
+
+# Missing 'device_sources' section which is required.
