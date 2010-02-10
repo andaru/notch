@@ -1,0 +1,14 @@
+device_sources:
+    old_rancid_configs:
+        provider: router.db
+        root: testdata/router_db/
+        ignore_down_devices: True
+
+    internal_dns:
+        priority: 105
+        provider: dnstxt
+        vendor_key: 'device_type'
+
+options:
+    port: 8000
+    max_threads: 128
