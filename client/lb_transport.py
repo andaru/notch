@@ -30,10 +30,10 @@ class BackEnd(object):
     Attributes:
       address: A host[:port] string to reach the back-end.
       handler_uri: A URI string, the path to the RPC handler.
-      num_rpc_inflight: An int, the number of RPCs currently outstanding.
-      state: An int, one of the module constants IDLE, ACTIVE, CONNECTED, ERROR.
-      transport: An xmlrpclib.Transport subclass, the RPC Transport class
-        to use for this back end.
+      num_rpc_inflight: An int, the number of RPCs outstanding.
+      state: An int, one of the module state constants.
+      transport: An xmlrpclib.Transport subclass, the RPC
+        Transport class to use for this back end.
     """
     
     def __init__(self, address=None, handler_uri=None, transport=None):

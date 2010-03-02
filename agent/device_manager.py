@@ -12,6 +12,10 @@ Without this subsystem, device vendor information would have to be submitted
 by every client RPC.
 """
 
+# Import the greened socket class for async DNS lookups.
+import eventlet
+from eventlet.green import socket
+
 import adns
 import ADNS
 import yaml
@@ -43,6 +47,12 @@ class DeviceProvider(object):
         self._dns = self.__class__.dns_impl()
 
     def address_lookup(self, name):
+        try:
+            return socket.gethostbyname(name)
+        except socket.gaierror:
+            raise adns.Error           
+        
+    def _address_lookup(self, name):
         """Performs a synchronous DNS lookup for the requested address.
 
         Args:
