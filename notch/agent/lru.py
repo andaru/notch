@@ -7,7 +7,7 @@
 import copy
 import heapq
 import time
-
+import UserDict
 
 # pylint:disable-msg=R0903
 class HeapItem(object):
@@ -23,7 +23,7 @@ class HeapItem(object):
             return False
 
 
-class LruDict(object):
+class LruDict(UserDict.IterableUserDict):
     """A least-recently used cache style dictionary.
 
     Attributes:
@@ -39,7 +39,13 @@ class LruDict(object):
         self.maximum_size = maximum_size
         self._populate_callback = populate_callback
         self._heap = []
-        self._data = {}
+        self.data = {}
+        self._dirty = None
+        self._initialise()
+
+    def _initialise(self):
+        self._heap[:] = []
+        self.data.clear()
         self._dirty = False
 
     def expire_item(self, return_copy=True):
@@ -52,39 +58,38 @@ class LruDict(object):
           IndexError: if the LRU is empty.
         """
         item = heapq.heappop(self._heap)
-        value = self._data.get(item.key)
+        value = self.data.get(item.key)
         if return_copy:
             result = copy.copy(value)
         else:
             result = None
-        del self._data[item.key]
+        del self.data[item.key]
         return result
 
     def get(self, key, default=None):
         """Returns the named key's value from the cache."""
-        if key in self._data:
-            return self._data[key]
+        if key in self.data:
+            return self.data[key]
         else:
             return default
 
-    def _set_populate_callback(self, callback):
+    def set_populate_callback(self, callback):
         """Sets the population callback for the populate_callback attribute."""
+        self._initialise()
         self._populate_callback = callback
-        self._dirty = True
 
-    def _set_expire_callback(self, callback):
+    def set_expire_callback(self, callback):
         """Sets the expiry callback for the expire_callback attribute."""
         self._expire_callback = callback
-        self._dirty = True
 
     def __getitem__(self, key):
         """Gets the value for key from the cache."""
-        if key not in self._data or self._dirty:
-            value = self.populate_callback(key)
+        if key not in self.data or self._dirty:
+            value = self._populate_callback(key)
             self._push_and_set(key, value)
-        if self._dirty:
-            self._dirty = False
-        return self._data[key]
+            if self._dirty:
+                self._dirty = False
+        return self.data[key]
 
     def __setitem__(self, key, value):
         """Sets the value for key to the cache."""
@@ -98,21 +103,16 @@ class LruDict(object):
         else:
             item = heapq.heapreplace(self._heap, item)
             self._expire_item(item.key)
-        self._data[key] = value
+        self.data[key] = value
 
     def _expire_item(self, key):
         """Expires an item from the cache."""
-        if self.expire_callback and key in self._data:
-            self.expire_callback(key, self._data[key])
-        if key in self._data:
-            del self._data[key]
+        if self._expire_callback and key in self.data:
+            self._expire_callback(key, self.data[key])
+        if key in self.data:
+            del self.data[key]
 
-    def __len__(self):
-        return len(self._data)
-
-    # pylint:disable-msg=W0212
-    expire_callback = property(lambda c: c._expire_callback,
-                                 _set_expire_callback)
-
-    populate_callback = property(lambda c: c._populate_callback,
-                                 _set_populate_callback)
+    def flush(self):
+        for key in self.data.keys():
+            self.data[key] = None
+            del self.data[key]

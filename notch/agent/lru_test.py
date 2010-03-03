@@ -12,9 +12,6 @@ import lru
 
 class LruTest(unittest.TestCase):
 
-    def setUp(self):
-        self.called = False
-
     def testLruBasic(self):
         def callback(input):
             return input*2
@@ -27,19 +24,20 @@ class LruTest(unittest.TestCase):
         self.assertEqual(len(self.lru), 2)
 
     def testLruExpiry(self):
+        called = []
         def callback(input):
             return input*3
 
         def expire(key, value):
-            self.called = True
+            called.append(True)
 
         self.lru = lru.LruDict(callback, expire_callback=expire,
                                maximum_size=2)
         self.assertEqual(self.lru[5], 15)
         self.assertEqual(self.lru[10], 30)
-        self.assertEqual(self.called, False)
+        self.assert_(not called)
         self.assertEqual(self.lru['10'], '101010')
-        self.assertEqual(self.called, True)
+        self.assert_(called)
         self.assertEqual(len(self.lru), 2)
 
     def testExpireItem(self):
@@ -100,33 +98,38 @@ class LruTest(unittest.TestCase):
         def callback2(input):
             return input*2
 
-        self.lru = lru.LruDict(callback1, maximum_size=2)
-        self.assertEqual(self.lru[10], 10)
-        self.assertEqual(len(self.lru), 1)
-        self.assertEqual(self.lru[10], 10)
-        self.assertEqual(len(self.lru), 1)
+        my_lru = lru.LruDict(callback1, maximum_size=1)
+        self.assertEqual(my_lru[10], 10)
+        self.assertEqual(len(my_lru), 1)
+        self.assertEqual(my_lru[10], 10)
+        self.assertEqual(len(my_lru), 1)
 
-        self.lru.populate_callback = callback2
-        self.assertEqual(self.lru[10], 20)
-        self.assertEqual(len(self.lru), 1)
+        my_lru.set_populate_callback(callback2)
+        self.assertEqual(my_lru[10], 20)
+        self.assertEqual(len(my_lru), 1)
 
     def testLruChangeExpireCallback(self):
+        called = []
+
         def callback(input):
             return input*3
 
         def expire(key, value):
-            self.called = False
+            called[:] = []
 
         def expire_new(key, value):
-            self.called = True
+            called.append(True)
 
         self.lru = lru.LruDict(callback, expire_callback=expire, maximum_size=2)
+        self.assert_(not called)
         self.assertEqual(self.lru[5], 15)
         self.assertEqual(self.lru[10], 30)
-        self.assertEqual(self.called, False)
-        self.lru.expire_callback = expire_new
+        self.assert_(not called)
+        self.assertEqual(len(self.lru), 2)
+        self.lru.set_expire_callback(expire_new)
+        self.assert_(not called)
         self.assertEqual(self.lru['10'], '101010')
-        self.assertEqual(self.called, True)
+        self.assert_(called)
         self.assertEqual(len(self.lru), 2)
 
     def testExpireItemForLruHeapOrder(self):
