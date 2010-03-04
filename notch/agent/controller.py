@@ -64,7 +64,6 @@ class Controller(object):
         else:
             logging.debug('Loading credentials from file %r', creds_filename)
             self.credentials = credential.load_credentials_file(creds_filename)
-
         
     def create_session(self, key):
         """Creates a session.Session object for the session key.
