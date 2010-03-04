@@ -40,7 +40,6 @@ class LruDict(UserDict.IterableUserDict):
         self._populate_callback = populate_callback
         self._heap = []
         self.data = {}
-        self._dirty = None
         self._initialise()
 
     def _initialise(self):
@@ -101,8 +100,8 @@ class LruDict(UserDict.IterableUserDict):
         if len(self._heap) < self.maximum_size:
             heapq.heappush(self._heap, item)
         else:
-            item = heapq.heapreplace(self._heap, item)
-            self._expire_item(item.key)
+            old_item = heapq.heapreplace(self._heap, item)
+            self._expire_item(old_item.key)
         self.data[key] = value
 
     def _expire_item(self, key):
@@ -110,9 +109,4 @@ class LruDict(UserDict.IterableUserDict):
         if self._expire_callback and key in self.data:
             self._expire_callback(key, self.data[key])
         if key in self.data:
-            del self.data[key]
-
-    def flush(self):
-        for key in self.data.keys():
-            self.data[key] = None
             del self.data[key]
