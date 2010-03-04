@@ -140,7 +140,6 @@ class NotchJsonRpcParser(tornadorpc.json.JSONRPCParser):
         return Faults(self)
 
 
-#TODO(afort): Merge into tornadorpc/base.py
 class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
 
@@ -155,18 +154,40 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     def post(self):
         """Multi-threaded JSON-RPC POST handler."""
         self.controller = self.settings['controller']
+        self._execute_rpc(self.request.body)
         _tp.put(self._execute_rpc, self.request.body)
 
+    
+class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
+    _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
+      
+    def post(self):
+        """Single-threaded JSON-RPC POST handler."""
+        self.controller = self.settings['controller']
+        response_data = self._RPC_.run(self, self.request.body)
+        self.set_header('Content-Type', self._RPC_.content_type)
+        self.write(response_data)
+        self.finish()
 
-class NotchJsonRpcHandler(AsynchronousJSONRPCHandler):
-    """The Notch API as presented to JSON-RPC."""
+
+class NotchAPI(object):
+    """The Notch API."""
 
     def _handle_exception(self, exc):
         # TODO(afort): Add specific error codes in errors.py
         logging.error('%s: %s', str(exc.__class__), str(exc))
         logging.error(traceback.format_exc())
         return self.__class__._RPC_.faults.internal_error(str(exc))
-    
+
+    def devices_matching(self, *args):
+        try:
+            if not args:
+                return
+            else:
+                return self.controller.devices_matching(args[0])
+        except errors.ApiError, e:
+            return self._handle_exception(e)
+
     def command(self, **kwargs):
         try:
             return self.controller.request('command', **kwargs)
@@ -221,6 +242,15 @@ class NotchJsonRpcHandler(AsynchronousJSONRPCHandler):
         except errors.ApiError, e:
             return self._handle_exception(e)
 
+
+class NotchAsyncJsonRpcHandler(NotchAPI, AsynchronousJSONRPCHandler):
+    """The Notch API as presented to JSON-RPC asynchronously, for Tornado."""
+
+
+class NotchSyncJsonRpcHandler(NotchAPI, SynchronousJSONRPCHandler):
+    """The Notch API as presented to JSON-RPC asynchronously, for WSGI."""
+
+    
 
 class StopHandler(tornado.web.RequestHandler):
     """Request handler used to stop the Notch agent."""

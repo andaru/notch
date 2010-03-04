@@ -41,15 +41,32 @@ class JunosDevice(device.Device):
         except (paramiko.ssh_exception.SSHException, socket.error), e:
             raise errors.ConnectError(str(e))
 
+    def _exec_command(self, command, bufsize=-1, combine_stderr=False):
+        transport = self._ssh_client.get_transport()
+        channel = transport.open_session()
+
+        channel.set_combine_stderr(combine_stderr)
+        channel.exec_command(command)
+
+        stdin = channel.makefile('wb', bufsize)
+        stdout = channel.makefile('rb', bufsize)
+        stderr = channel.makefile_stderr('rb', bufsize)
+        return stdin, stdout, stderr
+        
     def command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
         # TODO(afort): Combine output channels (e.g., for JunOS during
         # 'traceroute', where some output appears on stderr and some on stdout).
         try:
-            stdin, stdout, stderr = self._ssh_client.exec_command(command)
+            stdin, stdout, stderr = self._exec_command(command,
+                                                       combine_stderr=True)
         except paramiko.ssh_exception.SSHException, e:
             raise errors.CommandError(str(e))
         else:
             stdin.close()
+        try:
             return ''.join(stdout.readlines())
+        finally:
+            stdout.close()
+            stderr.close()

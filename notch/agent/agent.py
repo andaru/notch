@@ -21,6 +21,7 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.options
 import tornado.web
+import tornado.wsgi
 import tornadorpc.json
 
 import controller
@@ -35,18 +36,30 @@ tornado.options.define('config', default='notch.yaml',
 
 DEFAULT_PORT = 8888
 
+class NotchBaseApplication(object):
 
-class NotchApplication(tornado.web.Application):
+    urls = [(r'/', handlers.HomeHandler),
+            (r'/_threads', handlers.ThreadsHandler),
+            (r'/stopstopstop', handlers.StopHandler)]
+
+class NotchTornadoApplication(tornado.web.Application):
 
     def __init__(self, configuration):
-        urls = [
-            (r'/', handlers.HomeHandler),
-            (r'/_threads', handlers.ThreadsHandler),
-            (r'/services/notch.jsonrpc', handlers.NotchJsonRpcHandler),
-            (r'/stopstopstop', handlers.StopHandler)]
+        urls = NotchBaseApplication.urls + [
+            (r'/services/notch.jsonrpc', handlers.NotchAsyncJsonRpcHandler)]
         control = controller.Controller(configuration)
         settings = dict(controller=control)
         tornado.web.Application.__init__(self, urls, **settings)
+
+
+class NotchWSGIApplication(tornado.wsgi.WSGIApplication):
+
+    def __init__(self, configuration):
+        urls = NotchBaseApplication.urls + [
+            (r'/services/notch.jsonrpc', handlers.NotchSyncJsonRpcHandler)]
+        control = controller.Controller(configuration)
+        settings = dict(controller=control)
+        tornado.wsgi.WSGIApplication.__init__(self, urls, **settings)
 
 
 def load_config(config_path):
@@ -71,7 +84,20 @@ def determine_port(options):
         return tornado.options.options.port or DEFAULT_PORT
 
 
-def main():
+def create_application():
+    try:
+        tornado.options.parse_command_line()
+        logging.debug('Loading configuration from file %r',
+                      tornado.options.options.config)
+        configuration = load_config(tornado.options.options.config)
+    except (tornado.options.Error, notch_config.Error), e:
+        logging.error(str(e))
+        return 1
+    else:
+        application = NotchApplication(configuration)
+        return application
+
+def run_under_tornado():
     try:
         tornado.options.parse_command_line()
         logging.debug('Loading configuration from file %r',
@@ -84,7 +110,8 @@ def main():
     port = determine_port(configuration.get('options'))
 
     try:
-        server = tornado.httpserver.HTTPServer(NotchApplication(configuration))
+        server = tornado.httpserver.HTTPServer(
+            NotchTornadoApplication(configuration))
         server.listen(port)
     except socket.error, e:
         logging.error('Could not listen on port %d. %s', port, e)
@@ -108,7 +135,14 @@ def main():
     tornado.ioloop.IOLoop.instance().stop()
     return 0
 
-
+   
 if __name__ == '__main__':
-    result = main()
-    sys.exit(result)
+    sys.exit(run_under_tornado())
+else:
+    tornado.options.parse_command_line()
+    logging.debug('Configuring WSGI application from file %r',
+                  tornado.options.options.config)
+    configuration = load_config('/Users/afort/Projects/notch/notch.yaml')
+
+    wsgi_application = NotchWSGIApplication(configuration)
+    
