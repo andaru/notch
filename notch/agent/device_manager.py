@@ -25,6 +25,7 @@ import os
 import re
 
 import device_factory
+import lru
 
 
 # Information about a device, provided by the device_info
@@ -45,8 +46,34 @@ class DeviceProvider(object):
         """Use only keyword arguments in sub-class initialisers."""
         # Setup an adns querier.
         self._dns = self.__class__.dns_impl()
+        self._match_cache = lru.LruDict(self._populate_match_cache)
+        # DeviceInfo instances keyed by device name.
+        self.devices = {}
+
+    def _populate_match_cache(self, reg):
+        try:
+            regexp = re.compile(reg, re.I)         
+        except:
+            return frozenset()
+        else:
+            result = set()
+            for device in self.devices.keys():
+                if regexp.match(device):
+                    result.add(device)
+            return result
 
     def address_lookup(self, name):
+        """Performs a synchronous DNS lookup for the requested address.
+
+        Args:
+          name: A string, a hostname to lookup in the DNS.
+
+        Returns:
+          A list of one or more IPv4 dotted-quad address strings.
+
+        Raises:
+          adns.Error: If there was an error during DNS lookup.
+        """
         try:
             return socket.gethostbyname(name)
         except socket.gaierror:
@@ -96,6 +123,9 @@ class DeviceProvider(object):
         """
         return self.devices.get(device_name)
 
+    def devices_matching(self, reg):
+        return self._match_cache[reg]
+
 
 class RancidDeviceProvider(DeviceProvider):
     """A provider of devices sourced from RANCID router.db files.
@@ -109,8 +139,6 @@ class RancidDeviceProvider(DeviceProvider):
 
     def __init__(self, root=None, ignore_down_devices=False, **kwargs):
         super(RancidDeviceProvider, self).__init__(**kwargs)
-        # DeviceInfo instances keyed by device name.
-        self.devices = {}
         self.root = root
         self.ignore_down_devices = ignore_down_devices
         if root is None:
@@ -127,6 +155,7 @@ class RancidDeviceProvider(DeviceProvider):
             a line-by-line context.
         """
         imported = 0
+        devices = {}
         for line in router_db:
             match = self.re_router_db_line.match(line)
             if match is not None:
@@ -141,10 +170,11 @@ class RancidDeviceProvider(DeviceProvider):
                     # Devices without an address aren't cared about.
                     continue
                 else:
-                    self.devices[device_name] = DeviceInfo(
+                    devices[device_name] = DeviceInfo(
                         device_name=device_name, addresses=addresses,
                         device_type=device_type)
                     imported += 1
+        self.devices.update(devices)
         return imported
 
     def scan(self):
@@ -179,7 +209,6 @@ class DnsTxtDeviceProvider(DeviceProvider):
     def __init__(self, keys=('device_type','connect_method',), **kwargs):
         super(DnsTxtDeviceProvider, self).__init__(**kwargs)
         self.keys = keys
-        self.devices = {}
 
     def _consume_txt_rr(self, record):
         record = record.split()
@@ -323,3 +352,13 @@ class DeviceManager(object):
             result = provider.device_info(device_name)
             if result is not None:
                 return result
+
+    def devices_matching(self, reg):
+        if not reg.startswith('^'):
+            reg = '^' + reg
+        if not reg.endswith('$'):
+            reg += '$'
+        result = set()
+        for _, provider in sorted(self.providers.iteritems()):
+            result |= provider.devices_matching(reg)
+        return result

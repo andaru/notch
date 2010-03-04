@@ -25,7 +25,6 @@ class Device(object):
       name: A string, the device (host) name.
       vendor: A string, the device type name (e.g., 'juniper', 'cisco').
     """
-
     # In concrete classes, set this to the vendor OS identifier.
     vendor = None
 
@@ -51,6 +50,7 @@ class Device(object):
 
         Returns:
           A list, normally containing ipaddr.IP*Address objects.
+          May also be a string, in which it is used to form a list.
 
         Raises:
           ipaddr.Error: An error occured creating the IPAddress object.
