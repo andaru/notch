@@ -110,7 +110,7 @@ class NotchClient(object):
                  use_ssl=False):
         """Initializer.
 
-        Arguments:
+        Args:
           use_ssl: A boolean, if True, use HTTPS.
 
         Raises:
@@ -151,7 +151,7 @@ class NotchClient(object):
     def _exec_request_callback(self, gt, *args, **kwargs):
         """Asynchronously receives responses and runs the user callback.
 
-        Arguments:
+        Args:
           gt: A GreenThread, the thread that completed.
           args: Tuple of arguments for the user callback.
           kwargs: Dict of keyword arguments for the user callback.
@@ -173,7 +173,7 @@ class NotchClient(object):
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
 
-        Arguments:
+        Args:
           request: A NotchRequest to execute.
           callback: None or a callable. If not None, uses asynchronous mode,
             calling the callback with request, *args and **kwargs as arguments.
