@@ -87,6 +87,10 @@ class DeviceManagerTest(unittest.TestCase):
         device_manager.socket.gethostbyname = self._mock_gethostbyname
         config = notch_config.get_config_from_file(
             os.path.join(TESTDATA, 'simple_config.yaml'))
+        # Fudge the path of the router.db files so that it matches the testdata.
+        config['device_sources']['old_rancid_configs']['root'] = (
+            os.path.join(TESTDATA, 'router_db'))
+
         dm = device_manager.DeviceManager(config)
         self.assertEqual(dm.serve_ready, False)
         dm.scan_providers()
@@ -103,6 +107,10 @@ class DeviceManagerTest(unittest.TestCase):
         device_manager.socket.gethostbyname = self._mock_gethostbyname
         config = notch_config.get_config_from_file(
             os.path.join(TESTDATA, 'simple_config.yaml'))
+        # Fudge the path of the router.db files so that it matches the testdata.
+        config['device_sources']['old_rancid_configs']['root'] = (
+            os.path.join(TESTDATA, 'router_db'))
+
         dm = device_manager.DeviceManager(config)
         self.assertEqual(dm.serve_ready, False)
         dm.scan_providers()
