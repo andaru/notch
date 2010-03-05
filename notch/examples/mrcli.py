@@ -117,24 +117,28 @@ class CommandLineInterface(cmd.Cmd):
 
 def get_option_parser():
     parser = optparse.OptionParser()
+    parser.usage = (
+        '%prog <comma-separated list of agent host:port pairs>')
     return parser
 
 
 if __name__ == '__main__':
     option_parser = get_option_parser()
-    option_parser.usage = (
-        '%prog <comma-separated list of agent host:port pairs>')
     _, args = option_parser.parse_args()
-    agents = args[0].split(',')
-    for a in agents:
-        a = a.strip()
-    
+    if not args:
+        print option_parser.get_usage()
+        raise SystemExit(1)
+
+    agents = ' '.join(args).split(',')
+    for i, a in enumerate(agents):
+        agents[i] = a.lstrip()
+
     try:
-        nc = notch.client.NotchClient(args)
+        nc = notch.client.NotchClient(agents)
     except notch.client.NoAgentsError, e:
         print option_parser.get_usage()
         raise SystemExit(1)
-        
+
     cli = CommandLineInterface(nc)
     try:
         cli.cmdloop()
