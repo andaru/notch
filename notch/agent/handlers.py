@@ -27,9 +27,9 @@ import tornado.web
 import tornadorpc.json
 import tornadorpc.base
 
-
 import errors
 import tp
+
 
 tornado.options.define('threadpool_num_threads', default=64,
                        help='Number of threads to use in sync task threadpool.',
@@ -154,7 +154,6 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     def post(self):
         """Multi-threaded JSON-RPC POST handler."""
         self.controller = self.settings['controller']
-        self._execute_rpc(self.request.body)
         _tp.put(self._execute_rpc, self.request.body)
 
     
