@@ -15,21 +15,7 @@ import re
 
 import yaml
 
-
-class Error(Exception):
-    """Credentials errors."""
-
-
-class NoMatchingCredentialError(Error):
-    """There was nothing in the credentials store matching the hostname."""
-
-
-class MissingFieldError(Error):
-    """The credential was missing a required field."""
-
-
-class UnknownCredentialsFileFormatError(Error):
-    """The file extension (and thus, format) was unrecognised."""
+import errors
 
 
 class Credential(object):
@@ -146,7 +132,7 @@ class Credentials(object):
             self.load_credentials()
             self.after_load_credentials()
             logging.debug('Loaded %d credentials.', len(self.credentials))
-            
+
 
     def __len__(self):
         return len(self.credentials)
@@ -166,14 +152,20 @@ class Credentials(object):
           hostname: A string, the target hostname to get the credential for.
 
         Returns:
-          A Credential instance or None if no matching credential was found.
+          A Credential instance.
+
+        Raises:
+          NoMatchingCredentialError: If there were no credentials for the host.
         """
         if not hostname:
-            return None
+            raise errors.NoMatchingCredentialError(
+                'No credentials for host %r' % hostname)
         # TODO(afort): Use an O(1) algorithm.
         for credential in self.credentials:
             if credential.matches(hostname):
                 return credential
+        raise errors.NoMatchingCredentialError('No credentials for host %r' %
+                                               hostname)
 
 
 class YamlCredentials(Credentials):
@@ -203,8 +195,8 @@ class YamlCredentials(Credentials):
                 enable_password = credential.get('enable_password')
                 ssh_private_key = credential.get('ssh_private_key')
                 if username is None:
-                    raise MissingFieldError('username field in credential %r '
-                                            'missing.' % credential)
+                    raise errors.MissingFieldError(
+                        'username field in credential %r missing' % credential)
                 result.append(Credential(regexp=regexp, username=username,
                                          password=password,
                                          enable_password=enable_password,
@@ -237,7 +229,7 @@ def load_credentials_file(filename):
     if format is not None:
         return format(filename)
     else:
-        raise UnknownCredentialsFileFormatError(
+        raise errors.UnknownCredentialsFileFormatError(
             'File %r not supported; supported extensions %r' %
             (filename, ', '.join(CREDS_FILE_EXTENSIONS.keys())))
 

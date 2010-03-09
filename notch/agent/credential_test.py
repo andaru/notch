@@ -9,7 +9,7 @@ import os
 import unittest
 
 import credential
-
+import errors
 
 # Path to testdata root.
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -42,9 +42,9 @@ class TestCredential(unittest.TestCase):
         self.assert_(match is not None)
         match = cred.regexp.match('car1.foo')
         self.assert_(match is None)
-      
+
         self.assertEqual(cred.matches('ar1.foo'), True)
-        self.assertEqual(cred.matches('car1.foo'), False)      
+        self.assertEqual(cred.matches('car1.foo'), False)
         self.assertEqual(cred.matches('abc2'), False)
 
 
@@ -68,7 +68,7 @@ class TestYamlCredentials(unittest.TestCase):
                           os.path.join(TESTDATA, 'invalid_credentials1.yaml'))
 
     def testInvalidCredsFile2(self):
-        self.assertRaises(credential.MissingFieldError,
+        self.assertRaises(errors.MissingFieldError,
                           credential.load_credentials_file,
                           os.path.join(TESTDATA, 'invalid_credentials2.yaml'))
 
@@ -81,8 +81,10 @@ class TestYamlCredentials(unittest.TestCase):
     def testGetCredentialInvalidInputs(self):
         creds = credential.load_credentials_file(
                 os.path.join(TESTDATA, 'credentials1.yaml'))
-        self.assert_(creds.get_credential('') is None)
-        self.assert_(creds.get_credential(None) is None)
+        self.assertRaises(errors.NoMatchingCredentialError,
+                          creds.get_credential, '')
+        self.assertRaises(errors.NoMatchingCredentialError,
+                          creds.get_credential, None)
         self.assertRaises(TypeError, creds.get_credential, 5)
 
 
