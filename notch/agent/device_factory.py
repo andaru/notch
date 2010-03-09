@@ -11,7 +11,7 @@ JunOS), and must match the vendor string for devices in the configuration
 """
 
 
-import dev_junos
+from devices import dev_junos
 
 
 VENDOR_MAP = {'junos': dev_junos.JunosDevice,
