@@ -28,6 +28,10 @@ class Device(object):
     # In concrete classes, set this to the vendor OS identifier.
     vendor = None
 
+    # Timeout values used by session to determine liveness/etc.
+    # Override as required in concrete device classes.
+    MAX_IDLE_TIME = 1800.0
+
     def __init__(self, name=None, addresses=None):
         self._addresses = []
         try:
@@ -45,11 +49,17 @@ class Device(object):
                     self.name == other.name and
                     self._connect_method == other._connect_method)
 
+    def __str__(self):
+        return ('%s(name=%r, addresses=%r, connected=%r, connect_method=%r, '
+                'vendor=%r)' % (self.__class__.__name__,
+                                self.name, self.addresses, self.connected,
+                                self.connect_method, self.vendor))
+    
     def _set_addresses(self, a):
         """Sets addresses suitable for the public property.
 
         Returns:
-          A list, normally containing ipaddr.IP*Address objects.
+          A list, normally containing ipaddr.IPAddress objects.
           May also be a string, in which it is used to form a list.
 
         Raises:
