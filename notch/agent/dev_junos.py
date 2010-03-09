@@ -11,7 +11,7 @@ import socket
 import paramiko
 
 import device
-import errors
+from notch.agent import errors
 
 
 class JunosDevice(device.Device):
