@@ -16,12 +16,11 @@
 
 """The Notch Python client library.
 
-This library implements the Notch Python API. Developers wishing to
-create Notch applications will import and use this module.
+
 """
 
 import eventlet
-# Required for xmlrpclib/jsonrpclib.
+# Need to monkey patch due to use of httplib/socket by xmlrpc/jsonrpclib.
 eventlet.monkey_patch(all=True)
 
 import logging
@@ -46,7 +45,7 @@ class Error(Exception):
 class NoAgentsError(Error):
     """No agent addresses were passed to the client."""
 
-    
+
 class NoCallbackError(Error):
     """The client got an response for a request but has no callback to run."""
 
@@ -55,8 +54,8 @@ class UnknownCommandError(Error):
     """The request contained an unknown command."""
 
 
-class NotchRequest(object):
-    """An object containing a Notch request (and response).
+class Request(object):
+    """An Notch Request object.
 
     Attributes:
       notch_method: A string, the Notch device API method to call.
@@ -69,6 +68,8 @@ class NotchRequest(object):
         yet completed).
       error: An exception if one occured during the request, or None if
         there was no error (or the request has not yet completed).
+      valid: A boolean, True if the request part of the object is valid.
+      completed: A boolean, True if the request has completed.
     """
 
     def __init__(self, notch_method, arguments=None,
@@ -92,8 +93,8 @@ class NotchRequest(object):
                                     x.error is not None))
 
 
-class NotchClient(object):
-    """The Notch client object.
+class Connection(object):
+    """A connection to one or more Notch agents.
 
     After creating a Client instance, you call Notch API methods and
     provide callbacks to receive the results after the I/O operations
@@ -101,15 +102,15 @@ class NotchClient(object):
 
     Example:
       import notch.client
-      c = notch.client.NotchClient('localhost:8800')
-      req = notch.client.NotchRequest('command', {'device_name': 'ar1.foo',
-                                                  'command': 'show ver'})
+      c = notch.client.Connection('localhost:8800')
+      req = notch.client.Request('command', {'device_name': 'ar1.foo',
+                                             'command': 'show ver'})
       ar1_show_ver_output = c.exec_request(req)
 
     Asynchronous operation is possible, see the callback* attributes
     on the NotchRequest object (and the keyword arguments for the
     exec_request method here).
-      
+
     Attributes:
       agents: An iterable of strings, host:port pairs for Notch Agents.
         Also accepts a string for a single agent host:port pair.
@@ -172,10 +173,8 @@ class NotchClient(object):
           NoCallbackError: The request had no callback.
         """
         # wait() returns immediately as we have been called.
-        value = gt.wait()
-        if value is not None:
-            request, result = value
-            request.result = result
+        request = gt.wait()
+        if request is not None:
             if request.callback is not None:
                 request.callback(request, *args, **kwargs)
             else:
@@ -208,8 +207,8 @@ class NotchClient(object):
                                       % request.notch_method)
         if request.callback is None:
             # Sync: blocks our caller until the result arrives.
-            request, result = gt.wait()
-            return result
+            request = gt.wait()
+            return request.result
         else:
             # Async: call the user's callback upon completion.
             gt.link(self._exec_request_callback,
@@ -218,7 +217,7 @@ class NotchClient(object):
     def _command(self, request):
         """Executes a command in the remote host's given CLI mode."""
         try:
-            result = self._notch.command(
+            request.result = self._notch.command(
                 device_name=request.arguments.get('device_name', None),
                 command=request.arguments.get('command', None),
                 mode=request.arguments.get('mode', None))
@@ -227,7 +226,7 @@ class NotchClient(object):
                           str(e.__class__), str(e))
             return None
         else:
-            return (request, result)
+            return request
 
     def wait_all(self):
         """Waits for all outstanding requests to complete.

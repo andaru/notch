@@ -26,42 +26,42 @@ import jsonrpclib
 import client
 
 
-class NotchRequestTest(unittest.TestCase):
+class RequestTest(unittest.TestCase):
 
     def testValid(self):
-        r = client.NotchRequest('command', {'device_name': 'localhost',
-                                            'command': 'show ver'})
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'})
         self.assert_(r.valid)
-        r = client.NotchRequest('', {})
+        r = client.Request('', {})
         self.assert_(not r.valid)
-        r = client.NotchRequest('command', {})
+        r = client.Request('command', {})
         self.assert_(not r.valid)
-        r = client.NotchRequest('', {'device_name': 'localhost',
-                                     'command': 'show ver'})
+        r = client.Request('', {'device_name': 'localhost',
+                                'command': 'show ver'})
         self.assert_(not r.valid)
 
 
-class NotchClientTest(unittest.TestCase):
+class ConnectionTest(unittest.TestCase):
 
     def testSyncrhonousRequest(self):
         m = mox.Mox()
         notch = m.CreateMockAnything()
-        notch.command(command='show ver', device_name='localhost', 
+        notch.command(command='show ver', device_name='localhost',
                       mode=None).AndReturn('RouterOS 1.0')
-        notch.command(command='help', device_name='localhost', 
+        notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
         m.ReplayAll()
 
-        nc = client.NotchClient('localhost:1')
+        nc = client.Connection('localhost:1')
         nc._notch = notch
 
-        r = client.NotchRequest('command', {'device_name': 'localhost',
-                                            'command': 'show ver'})
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'})
         result = nc.exec_request(r)
         self.assertEqual(result, 'RouterOS 1.0')
 
-        r = client.NotchRequest('command', {'device_name': 'localhost',
-                                            'command': 'help'})
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'help'})
         result = nc.exec_request(r)
         self.assertEqual(result, 'Help goes here')
 
@@ -70,27 +70,27 @@ class NotchClientTest(unittest.TestCase):
     def testAsyncrhonousRequest(self):
         m = mox.Mox()
         notch = m.CreateMockAnything()
-        notch.command(command='show ver', device_name='localhost', 
+        notch.command(command='show ver', device_name='localhost',
                       mode=None).AndReturn('RouterOS 1.0')
-        notch.command(command='help', device_name='localhost', 
+        notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
         m.ReplayAll()
 
-        nc = client.NotchClient('localhost:1')
+        nc = client.Connection('localhost:1')
         nc._notch = notch
 
-        r = client.NotchRequest('command', {'device_name': 'localhost',
-                                            'command': 'show ver'})
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'})
         result = nc.exec_request(r)
         self.assertEqual(result, 'RouterOS 1.0')
 
-        r = client.NotchRequest('command', {'device_name': 'localhost',
-                                            'command': 'help'})
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'help'})
         result = nc.exec_request(r)
         self.assertEqual(result, 'Help goes here')
 
         m.VerifyAll()
 
-        
+
 if __name__ == '__main__':
     unittest.main()

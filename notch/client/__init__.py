@@ -1,6 +1,6 @@
 from client import (Error, NoAgentsError, NoCallbackError, UnknownCommandError,
-                    NotchClient, NotchRequest)
+                    Connection, Request)
 
 
 __all__ = ['Error', 'NoAgentsError', 'NoCallbackError', 'UnknownCommandError',
-           'NotchClient', 'NotchRequest']
+           'Connection', 'Request']
