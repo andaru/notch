@@ -24,12 +24,15 @@ class CommandLineInterface(cmd.Cmd):
     intro = ('Welcome to Mr. CLI. Type "help" to get help.')
     option_prefix = '/'
 
-    def __init__(self, notch, completekey='tab', stdin=None, stdout=None):
+    def __init__(self, notch, completekey='tab', stdin=None, stdout=None,
+                 targets=None, command=None):
         self.notch = notch
-        self._targets = []
-
+        self._targets = targets or []
         cmd.Cmd.__init__(self,
                          completekey=completekey, stdin=stdin, stdout=stdout)
+        if command:
+            self.execute_command(command)
+            raise SystemExit(0)
 
     def _notch_callback(self, request, *args, **kwargs):
         if request is not None:
@@ -44,7 +47,7 @@ class CommandLineInterface(cmd.Cmd):
         elif not self._targets:
             self.stdout.write('Error: no targets to execute command on.')
         else:
-            self.execute_command(arg, self._targets)
+            self.execute_command(arg)
 
     def do_EOF(self, arg):
         """Sending EOF (Ctrl-D) will exit Mr. CLI."""
@@ -86,7 +89,8 @@ class CommandLineInterface(cmd.Cmd):
                '    - Sets the target list to rtr1.bne, rtr2.syd.\n')
         self.stdout.write(msg)
 
-    def execute_command(self, command, targets):
+    def execute_command(self, command, targets=None):
+        targets = targets or self._targets
         for target in targets:
             method_args = {'device_name': target,
                            'command': command}
@@ -119,12 +123,17 @@ def get_option_parser():
     parser = optparse.OptionParser()
     parser.usage = (
         '%prog <comma-separated list of agent host:port pairs>')
+    parser.add_option('-t', '--target', dest='targets', action='append',
+                      default=None,
+                      help='Adds a single target device')
+    parser.add_option('-c', '--cmd', dest='cmd', default=None,
+                      help='The command to execute on each target')
     return parser
 
 
 if __name__ == '__main__':
     option_parser = get_option_parser()
-    _, args = option_parser.parse_args()
+    options, args = option_parser.parse_args()
     if not args:
         print option_parser.get_usage()
         raise SystemExit(1)
@@ -139,7 +148,7 @@ if __name__ == '__main__':
         print option_parser.get_usage()
         raise SystemExit(1)
 
-    cli = CommandLineInterface(nc)
+    cli = CommandLineInterface(nc, targets=options.targets, command=options.cmd)
     try:
         cli.cmdloop()
     except KeyboardInterrupt:
