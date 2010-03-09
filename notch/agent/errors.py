@@ -16,6 +16,22 @@ class Error(Exception):
     pass
 
 
+class CredentialError(Error):
+    """Credential errors."""
+
+
+class NoMatchingCredentialError(CredentialError):
+    """There was nothing in the credentials store matching the hostname."""
+
+
+class MissingFieldError(CredentialError):
+    """The credential was missing a required field."""
+
+
+class UnknownCredentialsFileFormatError(CredentialError):
+    """The file extension (and thus, format) was unrecognised."""
+
+
 class ApiError(Error):
     """Errors emitted in response to an API call."""
     dampen_reconnect = False
@@ -69,9 +85,9 @@ class NoSessionCreatedError(ApiError):
 
 def tornadorpc_handle(exc):
     """Handles the exception for the tornadorpc framework and counts it."""
-    
-    
-    
+
+
+
 
 # Errors used in tornadorpc library for responses. Adds to existing JSON/XML
 # RPC error codes. Key integers correspond to the 'code' attribute on ApiError
