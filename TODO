@@ -1,12 +1,14 @@
 Agent:
 
-  * Use eventlet.spawn_after() for maintenance loops.
   * Add maximum aging to LRU cache.
     * Reap all aged out entries when cache nears fill (pop/push to check).
   * Add SetConfig/GetConfig and all other methods to Notch device API.
+  * Session dashboard. Session info should also be available via an RPC.
+  * Counters and counter data export for monitoring.
 
 Client:
 
+  * Request timeouts.
   * Record RPC latencies.
   * Gather other RPC statistics.
   * Use RPC statistics to influence load balancer, strategies such as:
@@ -18,5 +20,3 @@ Tools:
   Bundle these with the agent/client distribution, in examples/.
 
   * Mr. CLI - A multi-router command-line interface.
-  * 
-  
