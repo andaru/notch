@@ -42,12 +42,12 @@ class Session(object):
         self._credential = None
 
         self._connected = False
-        self._idle = True
+        self.idle = True
 
-        self._time_last_connect = None
-        self._time_last_disconnect = None
-        self._time_last_response = None
-        self._time_last_request = None
+        self.time_last_connect = None
+        self.time_last_disconnect = None
+        self.time_last_response = None
+        self.time_last_request = None
 
         self._bytes_sent = 0
         self._bytes_recv = 0
@@ -69,7 +69,8 @@ class Session(object):
 
     @credential.setter
     def credential(self, c):
-        """Sets the session credential, re-connecting if required."""
+        """Sets the session credential, re-connecting if presently connected."""
+        try_to_reconnect = self._connected
         if c != self._credential:
             try:
                 self.disconnect()
@@ -77,23 +78,31 @@ class Session(object):
                 # Disconnection failed, update the cred and reconnect anyway.
                 logging.error(str(e))
         self._credential = c
-        self.connect()
+
+        if try_to_reconnect:
+            try:
+                self.connect()
+            except errors.ConnectError:
+                # If we aren'table to reconnect, it's no great loss.
+                pass
         
     def connect(self):
         """Connects the session using a given Credential."""
         if self.device is None: return
         if self._connected: return
         self.device.connect(credential=self._credential)
-        self._time_last_connect = time.time()
+        self.time_last_connect = time.time()
         self._connected = True
+        self.idle = True
 
     def disconnect(self):
         """Disconnects the session."""
         if self.device is None: return
         if not self._connected: return
         self.device.disconnect()
-        self._time_last_disconnect = time.time()
+        self.time_last_disconnect = time.time()
         self._connected = False
+        self.idle = True
 
     def request(self, method, *args, **kwargs):
         """Executes a request on this session."""
@@ -112,13 +121,14 @@ class Session(object):
                 return errors.handle(e)
             
             # Execute the method.
-            self._time_last_request = time.time()
+            self.time_last_request = time.time()
             device_method = getattr(self.device, method, None)
             if device_method is None:
                 raise errors.UnsupportedRequestError(
                     'Method %r not part of the device API.' % method)
+
+            self.idle = False
             try:
-                self._idle = False
                 # Remove the device_name argument not used in device.py.
                 # TODO(afort): device.py/subclasses to take **kwargs instead?
                 if 'device_name' in kwargs:
@@ -129,9 +139,9 @@ class Session(object):
                     self.disconnect()
                     raise
                 else:
-                    self._time_last_response = time.time()
+                    self.time_last_response = time.time()
                     return result
             finally:
-                self._idle = True
+                self.idle = True
         finally:
             self._exclusive.release()
