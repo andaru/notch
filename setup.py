@@ -35,5 +35,5 @@ setuptools.setup(
                  ],
     packages = setuptools.find_packages(),
     install_requires=['distribute'],
-    requires=['eventlet>=0.9.6'],
+    requires=['eventlet>=0.9.6', 'tornado>=0.2'],
     )
