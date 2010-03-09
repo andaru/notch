@@ -9,15 +9,14 @@ web-server along with the TornadoRPC JSON/XML-RPC library to offer
 the Notch server API to Notch clients (via HTTP/JSON-RPC).
 """
 
+import eventlet
+eventlet.monkey_patch(all=False, os=False, socket=True, select=True)
+
 import logging
 import re
 import socket
-import threading
-import sys
-import time
 
 import tornado.httpserver
-import tornado.httpclient
 import tornado.ioloop
 import tornado.options
 import tornado.web
@@ -36,19 +35,22 @@ tornado.options.define('config', default='notch.yaml',
 
 DEFAULT_PORT = 8888
 
+
 class NotchBaseApplication(object):
 
     urls = [(r'/', handlers.HomeHandler),
             (r'/_threads', handlers.ThreadsHandler),
             (r'/stopstopstop', handlers.StopHandler)]
 
+
 class NotchTornadoApplication(tornado.web.Application):
 
     def __init__(self, configuration):
         urls = NotchBaseApplication.urls + [
             (r'/services/notch.jsonrpc', handlers.NotchAsyncJsonRpcHandler)]
-        control = controller.Controller(configuration)
-        settings = dict(controller=control)
+        self.controller = controller.Controller(configuration)
+        eventlet.spawn_n(self.controller.run_maintenance)
+        settings = dict(controller=self.controller)
         tornado.web.Application.__init__(self, urls, **settings)
 
 
@@ -57,8 +59,9 @@ class NotchWSGIApplication(tornado.wsgi.WSGIApplication):
     def __init__(self, configuration):
         urls = NotchBaseApplication.urls + [
             (r'/services/notch.jsonrpc', handlers.NotchSyncJsonRpcHandler)]
-        control = controller.Controller(configuration)
-        settings = dict(controller=control)
+        self.controller = controller.Controller(configuration)
+        eventlet.spawn_n(self.controller.run_maintenance)
+        settings = dict(controller=self.controller)
         tornado.wsgi.WSGIApplication.__init__(self, urls, **settings)
 
 
@@ -97,7 +100,9 @@ def create_application():
         application = NotchApplication(configuration)
         return application
 
-def run_under_tornado():
+
+if __name__ == '__main__':
+
     try:
         tornado.options.parse_command_line()
         logging.debug('Loading configuration from file %r',
@@ -105,44 +110,38 @@ def run_under_tornado():
         configuration = load_config(tornado.options.options.config)
     except (tornado.options.Error, notch_config.Error), e:
         logging.error(str(e))
-        return 1
+        raise SystemExit(1)
 
     port = determine_port(configuration.get('options'))
 
     try:
-        server = tornado.httpserver.HTTPServer(
-            NotchTornadoApplication(configuration))
+        application = NotchTornadoApplication(configuration)
+        server = tornado.httpserver.HTTPServer(application)
         server.listen(port)
-    except socket.error, e:
-        logging.error('Could not listen on port %d. %s', port, e)
-        return 2
-    except TypeError, e:
-        logging.error('Invalid port: %r', port)
-        return 2
-    except notch_config.Error, e:
-        logging.error(str(e))
-        return 1
-
-    try:
         logging.debug('Starting HTTP server on port %d', port)
         tornado.ioloop.IOLoop.instance().start()
+        tornado.ioloop.IOLoop.instance().stop()
+        raise SystemExit(0)
+    except socket.error, e:
+        logging.error('Could not listen on port %d: %s', port, e)
+        raise SystemExit(2)
+    except TypeError, e:
+        logging.error('Invalid port: %r', port)
+        raise SystemExit(2)
+    except notch_config.Error, e:
+        logging.error(str(e))
+        raise SystemExit(1)
     except KeyboardInterrupt:
         print
+
         handlers.StopHandler.stop()
+
         logging.warn('Server shutdown by keyboard interrupt')
-        return 3
+        raise SystemExit(3)
 
-    tornado.ioloop.IOLoop.instance().stop()
-    return 0
-
-   
-if __name__ == '__main__':
-    sys.exit(run_under_tornado())
 else:
     tornado.options.parse_command_line()
     logging.debug('Configuring WSGI application from file %r',
                   tornado.options.options.config)
     configuration = load_config('/Users/afort/Projects/notch/notch.yaml')
-
     wsgi_application = NotchWSGIApplication(configuration)
-    
