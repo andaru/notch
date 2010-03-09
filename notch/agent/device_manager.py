@@ -14,7 +14,6 @@ by every client RPC.
 
 # Import the greened socket class for async DNS lookups.
 import eventlet
-from eventlet.green import socket
 
 import adns
 import ADNS
@@ -23,6 +22,8 @@ import collections
 import logging
 import os
 import re
+from eventlet.green import socket
+from eventlet.green import threading
 
 import device_factory
 import lru
@@ -144,7 +145,6 @@ class RancidDeviceProvider(DeviceProvider):
         if root is None:
             raise ValueError('%s requires "root" keyword argument.'
                              % self.__class__.__name__)
-        # Automatically scan the router.db files at startup.
         self.scan()
 
     def _read_router_db(self, router_db):
@@ -272,6 +272,7 @@ class DeviceManager(object):
     def __init__(self, config=None):
         self.providers = {}
         self.serve_ready = False
+        self._scan_lock = threading.Lock()
         if config:
             self.config = config
             logging.debug('Reading configuration for device manager')
@@ -328,11 +329,12 @@ class DeviceManager(object):
             logging.error('No configuration found to load.')
 
     def scan_providers(self):
-        if self.serve_ready:
-            return
-        for provider in self.providers.itervalues():
-            provider.scan()
-        self.serve_ready = True
+        with self._scan_lock:
+            if self.serve_ready:
+                return
+            for provider in self.providers.values():
+                provider.scan()
+            self.serve_ready = True
 
     def device_info(self, device_name):
         """Returns any known information about a single requested device.
