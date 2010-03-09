@@ -23,7 +23,7 @@ import socket
 import paramiko
 
 import device
-from notch.agent import errors
+import errors
 
 
 class JunosDevice(device.Device):
