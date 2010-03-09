@@ -24,9 +24,6 @@ Without this subsystem, device vendor information would have to be submitted
 by every client RPC.
 """
 
-# Import the greened socket class for async DNS lookups.
-import eventlet
-
 import adns
 import ADNS
 import yaml
@@ -34,6 +31,7 @@ import collections
 import logging
 import os
 import re
+# Import the greened socket class for async DNS lookups.
 from eventlet.green import socket
 from eventlet.green import threading
 
@@ -62,6 +60,7 @@ class DeviceProvider(object):
         self._match_cache = lru.LruDict(self._populate_match_cache)
         # DeviceInfo instances keyed by device name.
         self.devices = {}
+        self.ready = False
 
     def _populate_match_cache(self, reg):
         try:
@@ -120,7 +119,7 @@ class DeviceProvider(object):
         This method should set up any instance state required for the
         device_info callback to answer queries.
         """
-        raise NotImplementedError
+        self.ready = True
 
     def device_info(self, device_name):
         """Returns any known information about a single requested device.
@@ -157,7 +156,6 @@ class RancidDeviceProvider(DeviceProvider):
         if root is None:
             raise ValueError('%s requires "root" keyword argument.'
                              % self.__class__.__name__)
-        self.scan()
 
     def _read_router_db(self, router_db):
         """Reads the router.db file provided.
@@ -187,6 +185,7 @@ class RancidDeviceProvider(DeviceProvider):
                         device_type=device_type)
                     imported += 1
         self.devices.update(devices)
+        self.ready = True
         return imported
 
     def scan(self):
@@ -341,11 +340,13 @@ class DeviceManager(object):
             logging.error('No configuration found to load.')
 
     def scan_providers(self):
+        """Scans all the providers to populate their indices."""
+        if self.serve_ready:
+            return
         with self._scan_lock:
-            if self.serve_ready:
-                return
             for provider in self.providers.values():
-                provider.scan()
+                if not provider.ready:
+                    provider.scan()
             self.serve_ready = True
 
     def device_info(self, device_name):
