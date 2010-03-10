@@ -233,6 +233,21 @@ class LruTest(unittest.TestCase):
         time.sleep(0.2)
         self.assert_(100 not in test_lru)
 
+    def testLruDontExpireSignal(self):
+        def callback(input):
+            return input*3
+
+        def expire(key, value):
+            # We won't cause this item to be expired.
+            raise lru.DontExpireError
+
+        test_lru = lru.LruDict(callback, expire_callback=expire,
+                               maximum_size=2)
+        self.assertEqual(test_lru[5], 15)
+        self.assertEqual(test_lru[10], 30)
+        self.assertEqual(test_lru['10'], '101010')
+        self.assertEqual(len(test_lru), 3)
+
 
 if __name__ == '__main__':
     unittest.main()

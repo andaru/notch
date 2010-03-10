@@ -18,11 +18,19 @@
 
 import copy
 import heapq
-import logging
 import time
 import UserDict
 
 import eventlet
+
+
+class Error(Exception):
+    pass
+
+
+class DontExpireError(Error):
+    """Indicate to the LRU that this key should not be expired."""
+
 
 # pylint:disable-msg=R0903
 class HeapItem(object):
@@ -52,6 +60,8 @@ class LruDict(UserDict.IterableUserDict):
       maximum_size: An int, the maximum cache size. Not reliable in a multi-
         threaded environment (the respected maximum size may be up to
         num_threads higher).
+      maximum_age: A float, the cache entry lifetime. Setting this to 0 or None
+        disables automatic aging for all new items entering the cache.
     """
 
     def __init__(self, populate_callback=None, expire_callback=None,
@@ -68,7 +78,6 @@ class LruDict(UserDict.IterableUserDict):
     def _initialise(self):
         self._heap[:] = []
         self.data.clear()
-        self._dirty = False
             
     def expire_item(self, return_copy=True):
         """Expires an item and optionally returns a shallow copy of it.
@@ -105,11 +114,10 @@ class LruDict(UserDict.IterableUserDict):
         self._expire_callback = callback
 
     def __getitem__(self, key):
-        """Gets the value for key from the cache."""
-        if key not in self.data or self._dirty:
+        """Gets the value for key from the cache, maybe populating it first."""
+        if key not in self.data:
             value = self._populate_callback(key)
             self._push_and_set(key, value)
-            self._dirty = False
         return self.data[key]
 
     def __setitem__(self, key, value):
@@ -127,19 +135,16 @@ class LruDict(UserDict.IterableUserDict):
         self.data[key] = value
         if self.maximum_age:
             self._cleanup_gts.add(
-                eventlet.spawn_after(self.maximum_age,
-                                     self._expire_item, key))
-
-
-    def _eventlet_expire_item(self, key):
-        """Just a debugging method."""
-        logging.info('Aging LRU expiry: %r=%r', key, self.data.get(key))
-        self._expire_item(key)
+                eventlet.spawn_after(self.maximum_age, self._expire_item, key))
 
     def _expire_item(self, key):
         """Expires an item from the cache."""
         if self._expire_callback and key in self.data:
-            self._expire_callback(key, self.data[key])
+            try:
+                self._expire_callback(key, self.data[key])
+            except DontExpireError, e:
+                # If this exception is raised, we won't expire the item.
+                return
         try:
             del self.data[key]
         except KeyError:
