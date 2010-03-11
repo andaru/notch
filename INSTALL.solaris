@@ -1,0 +1,100 @@
+Here's a run-through to getting Notch installed on Solaris.
+
+While this example is intended to be as complete as possible, Solaris
+is missing almost all of the required libraries that most Linux
+distributions make available by default, so these instructions are
+both long and subject to change.  If you aren't able to successfully
+complete an installation, please get in touch with us, or use a Linux,
+Mac OS/X or FreeBSD machine :).
+
+In these examples, we used a Sun v440 running Solaris 10 and software
+packages from SunFreeWare.com via pkg-get.
+
+Assumptions: These packges are generally installed into /usr/local/,
+so /usr/local/bin will need to be in your PATH, and /usr/local/lib in
+the linker configuration (see below for details of modifying the
+linker configuration).
+
+Install pkg-get to begin with; see http://www.opencsw.org/pkg-get
+
+You'll need to install the python, adns, setuptools packages.
+
+We used these commands, as root.
+
+# pkg-get -i python-2.6
+# pkg-get -i adns-1.4
+# pkg-get -i setuptools-0.6c11 [*]
+
+In addition, install the latest versions of these packages, using the
+same command:
+
+libidn
+libiconv
+libssh2
+openssl
+
+[*] While this should work, pkg-get didn't find the package for this
+command, so we used the following process, which requires the `pkgadd`
+and `wget` binaries to be installed also.
+
+# pkg-add -i wget
+# wget ftp://ftp.sunfreeware.com/pub/freeware/sparc/10/setuptools-0.6c11-sol10-sparc-local.gz
+# gzip -d ./setuptools-0.6c11-sol10-sparc-local.gz
+# pkgadd -d ./setuptools-0.6c11-sol10-sparc-local
+
+Optional:
+
+If you want to use the C accelerated YAML library, you'll need to
+install LibYAML first.  See http://pyyaml.org/wiki/LibYAML for
+installation details.  By default, the pure Python version will be
+used, which is fine for Notch (unless you have massive YAML
+configuration files and parse time is an issue).
+
+Install the requisite Python modules, like so:
+
+# easy_install mox PyYAML ipaddr adns-python paramiko
+
+Now install the tornadorpc and jsonrpclib packages from Google code
+(see the main INSTALL file for details).  You'll need subversion
+installed to download the latest versions of these packages at
+present.  Subversion has the following transitive dependencies:
+
+openldap
+sasl
+neon
+expat
+zlib
+
+To have python able to find libadns for the Python `adns` module,
+you'll need to tell the dynamic linker to include /usr/local/lib in
+the default linker search path.  You use `crle` to do this, usually by
+appending /usr/local/lib to the existing 'Default Library Path (ELF)'
+in the output of `crle`.
+
+e.g., on this Solaris 10 machine, our default linker config was this:
+
+# crle
+
+Default configuration file (/var/ld/ld.config) not found
+  Default Library Path (ELF):   /lib:/usr/lib  (system default)
+  Trusted Directories (ELF):    /lib/secure:/usr/lib/secure  (system default)
+
+We add /usr/local/lib by updating the full default library path as so:
+
+# crle -u -l /lib:/usr/lib:/usr/local/lib
+
+And confirming that has been done:
+
+# crle
+
+Configuration file [version 4]: /var/ld/ld.config  
+  Default Library Path (ELF):   /lib:/usr/lib:/usr/local/lib
+  Trusted Directories (ELF):    /lib/secure:/usr/lib/secure  (system default)
+
+Command line:
+  crle -c /var/ld/ld.config -l /lib:/usr/lib:/usr/local/lib
+
+Now install tornado, using the instructions on tornadoweb.org.
+
+At this point, you're ready to configure and run Notch's agent.py; see
+the main installation instructions for more.
