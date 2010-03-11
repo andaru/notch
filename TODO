@@ -1,5 +1,6 @@
 Agent:
 
+  * Add RPC authentication.
   * Add maximum aging to LRU cache.
     * Reap all aged out entries when cache nears fill (pop/push to check).
   * Add SetConfig/GetConfig and all other methods to Notch device API.
