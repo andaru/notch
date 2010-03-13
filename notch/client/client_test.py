@@ -20,10 +20,14 @@
 import mox
 import unittest
 import os
+from eventlet.green import time
 
 import jsonrpclib
 
 import client
+
+class CommandError(Exception):
+    """An error occured executing the command on the host."""
 
 
 class RequestTest(unittest.TestCase):
@@ -57,17 +61,20 @@ class ConnectionTest(unittest.TestCase):
 
         r = client.Request('command', {'device_name': 'localhost',
                                        'command': 'show ver'})
-        result = nc.exec_request(r)
-        self.assertEqual(result, 'RouterOS 1.0')
+        r = nc.exec_request(r)
+        self.assertEqual(r.result, 'RouterOS 1.0')
 
         r = client.Request('command', {'device_name': 'localhost',
                                        'command': 'help'})
-        result = nc.exec_request(r)
-        self.assertEqual(result, 'Help goes here')
+        r = nc.exec_request(r)
+        self.assertEqual(r.result, 'Help goes here')
 
         m.VerifyAll()
 
     def testAsyncrhonousRequest(self):
+        def cb(r):
+            self._r = r
+
         m = mox.Mox()
         notch = m.CreateMockAnything()
         notch.command(command='show ver', device_name='localhost',
@@ -80,15 +87,118 @@ class ConnectionTest(unittest.TestCase):
         nc._notch = notch
 
         r = client.Request('command', {'device_name': 'localhost',
-                                       'command': 'show ver'})
+                                       'command': 'show ver'},
+                           callback=cb)
         result = nc.exec_request(r)
-        self.assertEqual(result, 'RouterOS 1.0')
+        nc.wait_all()
+        self.assertEqual(self._r.result, 'RouterOS 1.0')
 
         r = client.Request('command', {'device_name': 'localhost',
-                                       'command': 'help'})
+                                       'command': 'help'},
+                           callback=cb)
         result = nc.exec_request(r)
-        self.assertEqual(result, 'Help goes here')
+        nc.wait_all()
+        self.assertEqual(self._r.result, 'Help goes here')
 
+        m.VerifyAll()
+
+    def testRequestTimeoutSync(self):
+        def delay(command=None, device_name=None, mode=None):
+            time.sleep(0.5)
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).WithSideEffects(delay).AndReturn(
+            'RouterOS 1.0')
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'},
+                           timeout_s=0.1)
+        self.assertRaises(client.TimeoutError, nc.exec_request, r)
+        m.VerifyAll()
+
+    def testRequestTimeoutAsync(self):
+        def delay(command=None, device_name=None, mode=None):
+            time.sleep(0.5)
+
+        def cb(r):
+            self._r = r
+
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).WithSideEffects(delay).AndReturn(
+            'RouterOS 1.0')
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'},
+                           callback=cb,
+                           timeout_s=0.1)
+        _ = nc.exec_request(r)
+        # Wait around for the timeout to occur.
+        self.assertRaises(client.TimeoutError, nc.wait_all)
+        m.VerifyAll()
+
+    def testTimeoutDoesNotOccurSync(self):
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).AndReturn('RouterOS 1.0')
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'},
+                           timeout_s=1)
+        self.assert_(not r.completed)
+        self.assertEqual(nc.exec_request(r).result, 'RouterOS 1.0')
+        self.assert_(r.completed)
+        m.VerifyAll()
+
+    def testErrorOccuredSync(self):
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).AndRaise(CommandError)
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'},
+                           timeout_s=1)
+        
+        result = nc.exec_request(r)
+        self.assert_(isinstance(result.error, CommandError))
+        self.assert_(r.completed)
+        m.VerifyAll()
+
+    def testErrorOccuredAsync(self):
+        def cb(r):
+            self.assert_(isinstance(r.error, CommandError))
+
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).AndRaise(CommandError)
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('command', {'device_name': 'localhost',
+                                       'command': 'show ver'},
+                           timeout_s=1, callback=cb)
+        
+        result = nc.exec_request(r)
+        nc.wait_all()
+        self.assert_(r.completed)
         m.VerifyAll()
 
 

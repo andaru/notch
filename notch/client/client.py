@@ -41,6 +41,10 @@ class Error(Exception):
     pass
 
 
+class TimeoutError(Error):
+    """The client request timed out."""
+
+
 class NoAgentsError(Error):
     """No agent addresses were passed to the client."""
 
@@ -69,27 +73,49 @@ class Request(object):
         there was no error (or the request has not yet completed).
       valid: A boolean, True if the request part of the object is valid.
       completed: A boolean, True if the request has completed.
+      timeout_s: A float, the request timeout, in seconds. If None, do
+        not use a timeout on the client side.
     """
 
     def __init__(self, notch_method, arguments=None,
-                 callback=None, callback_args=None, callback_kwargs=None):
+                 callback=None, callback_args=None, callback_kwargs=None,
+                 timeout_s=None):
         # Request arguments.
         self.notch_method = notch_method
         self.arguments = arguments
         self.callback = callback
         self.callback_args = callback_args or tuple()
         self.callback_kwargs = callback_kwargs or {}
+        self.timeout_s = timeout_s
         # Response attributes.
         self.result = None
         self.error = None
+        # An eventlet timeout instance.
+        self._timeout = None
         # Timers available for debugging.
         self.time_sent = None
         self.time_completed = None
         self.time_elapsed_s = None
 
     valid = property(lambda x: (x.notch_method and x.arguments))
-    completed = property(lambda x: (x.result is not None or
-                                    x.error is not None))
+    completed = property(lambda x: x._completed())
+
+    def _completed(self):
+        if self._timeout is not None:
+            return ((self.result is not None
+                     or self.error is not None)
+                    and not self._timeout.pending)
+        else:
+            return (self.result is not None or self.error is not None)
+
+    def start(self):
+        if self.timeout_s is not None:
+            self._timeout = eventlet.timeout.Timeout(self.timeout_s,
+                                                     TimeoutError)
+
+    def finish(self):
+        if self._timeout is not None and not self.completed:
+            self._timeout.cancel()
 
 
 class Connection(object):
@@ -103,8 +129,13 @@ class Connection(object):
       import notch.client
       c = notch.client.Connection('localhost:8800')
       req = notch.client.Request('command', {'device_name': 'ar1.foo',
+<<<<<<< local
+                                             'command': 'show ver'})
+      ar1_show_ver_output = c.exec_request(req).result
+=======
                                              'command': 'show version'})
       ar1_show_ver_output = c.exec_request(req)
+>>>>>>> other
 
     Asynchronous operation is possible, see the callback* attributes
     on the Request object (and the keyword arguments for the
@@ -160,6 +191,7 @@ class Connection(object):
         # wait() returns immediately as we have been called.
         request = gt.wait()
         if request is not None:
+            request.finish()
             if request.callback is not None:
                 request.callback(request, *args, **kwargs)
             else:
@@ -174,11 +206,11 @@ class Connection(object):
                 command=request.arguments.get('command', None),
                 mode=request.arguments.get('mode', None))
         except Exception, e:
-            logging.error('Exception <%s> during Notch method: %s',
+            logging.error('Exception %s during Notch method: %s',
                           str(e.__class__), str(e))
-            logging.error(traceback.format_exc())
-        else:
-            return request
+            logging.debug(traceback.format_exc())
+            request.error = e
+        return request
 
     def _setup_agents(self):
         """Sets up the Notch JSON RPC agent connection.
@@ -205,23 +237,26 @@ class Connection(object):
           kwargs: Dict of keyword arguments for the user callback.
 
         Returns:
-          If the request has no callbacks, the request's result will be
-          returned. If there is a callback, None is returned.
+          The updated request object in synchronous mode, or None in async mode.
+          See the result or error attributes of the request object.
         """
         if callback: request.callback = callback
         if args: request.callback_args = args
         if kwargs: request.callback_kwargs = kwargs
-        method = getattr(self, '_' + request.notch_method, None)
-
+        method = getattr(self, '_notch_api_' + request.notch_method, None)
         if method is not None:
             gt = self._pool.spawn(method, request)
+            # Don't start the timer until we've gotten a greenthread;
+            # avoid false timeouts when the pool blocks.
+            request.start()
         else:
             raise UnknownCommandError('%r is not a Notch command.'
                                       % request.notch_method)
         if request.callback is None:
             # Sync: blocks our caller until the result arrives.
             request = gt.wait()
-            return request.result
+            request.finish()
+            return request
         else:
             # Async: call the user's callback upon completion.
             gt.link(self._exec_request_callback,
@@ -250,7 +285,13 @@ class Connection(object):
                                       'command': command, 'mode': mode},
                           callback=callback, callback_args=callback_args,
                           callback_kwargs=callback_kwargs)
-        return self.exec_request(request)
+        r = self.exec_request(request)
+        if request.callback:
+            return 
+        if isinstance(r.error, Exception):
+            raise r.error
+        else:
+            return r.result
         
     def wait_all(self):
         """Waits for all outstanding requests to complete.
