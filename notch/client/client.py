@@ -213,6 +213,7 @@ class Connection(object):
                 self._pool.resize(self.max_concurrency)
                 logging.debug('Reconfigured GreenThread pool size to %d',
                               self.max_concurrency)
+            request.error = e
         except Exception, e:
             logging.error('Exception %s occured during Notch method: %s',
                           str(e.__class__), str(e))
