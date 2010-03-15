@@ -24,6 +24,7 @@ eventlet.monkey_patch(all=True)
 import logging
 import os
 import traceback
+from eventlet.green import socket
 
 import jsonrpclib
 
@@ -129,13 +130,8 @@ class Connection(object):
       import notch.client
       c = notch.client.Connection('localhost:8800')
       req = notch.client.Request('command', {'device_name': 'ar1.foo',
-<<<<<<< local
-                                             'command': 'show ver'})
-      ar1_show_ver_output = c.exec_request(req).result
-=======
                                              'command': 'show version'})
-      ar1_show_ver_output = c.exec_request(req)
->>>>>>> other
+      ar1_show_ver_output = c.exec_request(req).result
 
     Asynchronous operation is possible, see the callback* attributes
     on the Request object (and the keyword arguments for the
@@ -148,7 +144,7 @@ class Connection(object):
       path: The URL to access the Notch RPC endpoint on all agents.
     """
 
-    def __init__(self, agents, max_concurrency=None,
+    def __init__(self, agents=None, max_concurrency=None,
                  path='/services/notch.jsonrpc',
                  use_ssl=False):
         """Initializer.
@@ -163,9 +159,13 @@ class Connection(object):
             self.agents = [agents]
         else:
             self.agents = agents or os.getenv('NOTCH_AGENTS')
-        self.max_concurrency = (max_concurrency or
-                                os.getenv('NOTCH_CONCURRENCY') or
-                                DEFAULT_NOTCH_CONCURRENCY)
+        try:
+            self.max_concurrency = int(max_concurrency or
+                                       os.getenv('NOTCH_CONCURRENCY') or
+                                       DEFAULT_NOTCH_CONCURRENCY)
+        except ValueError:
+            self.max_concurrency = DEFAULT_NOTCH_CONCURRENCY
+
         self.path = path
         if use_ssl:
             self._protocol = 'https://'
@@ -205,8 +205,16 @@ class Connection(object):
                 device_name=request.arguments.get('device_name', None),
                 command=request.arguments.get('command', None),
                 mode=request.arguments.get('mode', None))
+        except socket.error, e:
+            # Use a "too many open files" error to set the concurrency
+            # limit to the current usage level.
+            if e.args[0] == 24:
+                self.max_concurrency = self.num_requests_running - 1
+                self._pool.resize(self.max_concurrency)
+                logging.debug('Reconfigured GreenThread pool size to %d',
+                              self.max_concurrency)
         except Exception, e:
-            logging.error('Exception %s during Notch method: %s',
+            logging.error('Exception %s occured during Notch method: %s',
                           str(e.__class__), str(e))
             logging.debug(traceback.format_exc())
             request.error = e
