@@ -33,6 +33,7 @@ tornado.options.define('port', default=None,
 tornado.options.define('config', default='notch.yaml',
                        help='Notch configuration file', type=str)
 
+
 DEFAULT_PORT = 8888
 
 
@@ -108,10 +109,7 @@ if __name__ == '__main__':
 
         logging.warn('Server shutdown by keyboard interrupt')
         raise SystemExit(3)
-
 else:
-    tornado.options.parse_command_line()
-    logging.debug('Configuring WSGI application from file %r',
-                  tornado.options.options.config)
+    # TODO(afort): Use a wsgi config factory for spawning/wsgi servers.
     configuration = load_config('/Users/afort/Projects/notch/notch.yaml')
     wsgi_application = agent.NotchWSGIApplication(configuration)
