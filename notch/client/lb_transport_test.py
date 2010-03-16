@@ -26,17 +26,70 @@ import lb_transport
 import xmlrpclib
 
 
-class LoadBalancingTransportTest(unittest.TestCase):
+class BackendTest(mox.MoxTestBase):
+    
+    def testBackend(self):
+        trans = self.mox.CreateMock(xmlrpclib.Transport)
+        self.mox.ReplayAll()
+        be = lb_transport.Backend(address='127.0.0.1')
+        be.transport = trans
+        self.assertEqual('127.0.0.1', be.address)
+        be.address = '127.0.0.2'
+        self.assertEqual('127.0.0.2', be.address)
+        self.assertEqual(trans, be.transport)
+        self.mox.VerifyAll()
 
-    def testHostForm(self):
-        t = lb_transport.LoadBalancingTransport()
-        self.assertEqual(t.host_form('localhost:8080'), 'localhost')
-        self.assertEqual(t.host_form('localhost: 8080'), 'localhost')
-        self.assertEqual(t.host_form('localhost : 8080'), 'localhost')
-        self.assertEqual(t.host_form('localhost'), 'localhost')
-        self.assertEqual(t.host_form('localhost '), 'localhost')
-        self.assertEqual(t.host_form(' localhost'), 'localhost')
-        self.assertEqual(t.host_form(' localhost '), 'localhost')
+        
+class BackendPolicyTest(mox.MoxTestBase):
+    
+    def testBackendPolicy(self):
+        trans = self.mox.CreateMock(xmlrpclib.Transport)
+        self.mox.ReplayAll()
+        be1 = lb_transport.Backend(address='127.0.0.1')
+        be1.transport = trans
+        be2 = lb_transport.Backend(address='127.0.0.2')
+        be2.transport = trans
+
+        pol = lb_transport.BackendPolicy([be1, be2])
+        self.assertEqual(len(pol.backends), 2)
+        self.mox.VerifyAll()
+
+    def testRoundRobinPolicy(self):
+        trans = self.mox.CreateMock(xmlrpclib.Transport)
+        self.mox.ReplayAll()
+        be1 = lb_transport.Backend(address='127.0.0.1')
+        be1.transport = trans
+        be2 = lb_transport.Backend(address='127.0.0.2')
+        be2.transport = trans
+
+        pol = lb_transport.RoundRobinPolicy([be1, be2])
+        iterator = iter(pol)
+        self.assertEqual(iterator.next(), be1)
+        self.assertEqual(iterator.next(), be2)
+        self.assertEqual(iterator.next(), be1)
+        self.mox.VerifyAll()
+
+    def testRandomPolicy(self):
+        trans = self.mox.CreateMock(xmlrpclib.Transport)
+        self.mox.ReplayAll()
+        be1 = lb_transport.Backend(address='127.0.0.1')
+        be1.transport = trans
+        be2 = lb_transport.Backend(address='127.0.0.2')
+        be2.transport = trans
+        be3 = lb_transport.Backend(address='127.0.0.3')
+        be3.transport = trans
+
+        pol = lb_transport.RoundRobinPolicy([be1, be2, be3])
+        iterator = iter(pol)
+        be_seen = set()
+        for _ in xrange(10):
+            # Our chances of getting both backends are remarkably high.
+            # But this is an imperfect test, for sure.
+            be_seen.add(iterator.next())
+        self.assert_(be1 in be_seen)
+        self.assert_(be2 in be_seen)
+        self.assert_(be3 in be_seen)
+        self.mox.VerifyAll()
 
 
 if __name__ == '__main__':
