@@ -47,6 +47,13 @@ class RequestTest(unittest.TestCase):
 
 class ConnectionTest(unittest.TestCase):
 
+    def testSetup(self):
+        nc = client.Connection('localhost:1')
+        self.assert_(nc)
+        self.assertRaises(client.NoSuchLoadBalancingPolicyError,
+                          client.Connection, 'localhost:1',
+                          load_balancing_policy='does not exist')
+
     def testSyncrhonousRequest(self):
         m = mox.Mox()
         notch = m.CreateMockAnything()

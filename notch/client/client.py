@@ -54,6 +54,10 @@ class NoCallbackError(Error):
     """The client got an response for a request but has no callback to run."""
 
 
+class NoSuchLoadBalancingPolicyError(Error):
+    """The requested load balancing policy does not exist."""
+
+
 class UnknownCommandError(Error):
     """The request contained an unknown command."""
 
@@ -142,11 +146,12 @@ class Connection(object):
         Also accepts a string for a single agent host:port pair.
       max_concurrency: An int, maximum number of concurrent requests to make.
       path: The URL to access the Notch RPC endpoint on all agents.
+      load_balancing_policy: The name of the load-balancing transport class.
     """
 
     def __init__(self, agents=None, max_concurrency=None,
                  path='/services/notch.jsonrpc',
-                 use_ssl=False):
+                 use_ssl=False, load_balancing_policy=None):
         """Initializer.
 
         Args:
@@ -171,6 +176,15 @@ class Connection(object):
             self._protocol = 'https://'
         else:
             self._protocol = 'http://'
+
+        self._lb_policy = None
+        if load_balancing_policy:
+            if hasattr(lb_transport, load_balancing_policy):
+                self._lb_policy = getattr(lb_transport, load_balancing_policy)
+            else:
+                raise NoSuchLoadBalancingPolicyError(
+                    'There is no load balancing policy named %r'
+                    % load_balancing_policy)
 
         self._pool = eventlet.greenpool.GreenPool(self.max_concurrency)
         self._notch = None
@@ -231,7 +245,8 @@ class Connection(object):
             raise NoAgentsError('No Notch agents supplied to Client.')
         else:
             self._transport = lb_transport.LoadBalancingTransport(
-                hosts=self.agents, transport=jsonrpclib.Transport)
+                hosts=self.agents, transport=jsonrpclib.Transport,
+                policy=self._lb_policy)
             self._notch = jsonrpclib.ServerProxy(
                 self._protocol + str(self.path), transport=self._transport)
 
