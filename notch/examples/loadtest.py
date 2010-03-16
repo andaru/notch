@@ -17,7 +17,6 @@
 """A simple loadtest using the Notch Client."""
 
 import sys
-from eventlet.green import time
 import notch.client
 
 COUNT = 50000
