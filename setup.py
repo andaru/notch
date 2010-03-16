@@ -20,7 +20,7 @@ setuptools.setup(
     name='notch',
     version='0.1',
     description='The Network Operator\'s Toolkit for Command-line Hacking',
-    requires=['eventlet', 'tornado', 'paramiko'],
+    requires=['eventlet', 'ipaddr', 'mox', 'paramiko', 'PyYAML', 'tornado'],
     url='http://code.google.com/p/notch/',
     author='Andrew Fort',
     author_email='notch-dev@googlegroups.com',
