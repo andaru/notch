@@ -154,7 +154,7 @@ class RandomPolicy(BackendPolicy):
 
     def backend_stream(self):
         while True:
-            yield random.choice(self._backends)
+            yield random.choice(list(self._backends))
 
 
 class RoundRobinPolicy(BackendPolicy):
@@ -201,7 +201,7 @@ class LoadBalancingTransport(xmlrpclib.Transport):
     """
 
     # Our default choice of policy.
-    DEFAULT_POLICY = RandomPolicy
+    DEFAULT_POLICY = LowestLatencyPolicy
 
     def __init__(self, use_datetime=0, hosts=None, transport=None, policy=None):
         xmlrpclib.Transport.__init__(self, use_datetime=use_datetime)
