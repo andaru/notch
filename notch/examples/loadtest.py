@@ -25,7 +25,7 @@ def c(r):
     pass
     
 def main(argv):
-    if len(argv):
+    if len(argv) > 1:
         try:
             count = int(argv[1])
         except ValueError:
