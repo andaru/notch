@@ -105,10 +105,11 @@ class Device(object):
             except errors.ConnectError, e:
                 success = False
                 last_exc = e
-                logging.error('Error connecting to %s: %s', address, str(e))
+                logging.error('Connect failed to %s: [%s] %s',
+                              address, e.__class__.__name__, str(e))
         if success:
             self._connected = True
-        elif last_exc:
+        elif last_exc is not None:
             raise last_exc
 
     def _connect(self, address=None, connect_method=None, credential=None):
