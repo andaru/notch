@@ -17,7 +17,6 @@
 """Notch Agent application classes."""
 
 import eventlet
-eventlet.monkey_patch(all=False, os=False, socket=True, select=True)
 
 import tornado.web
 import tornado.wsgi
@@ -26,20 +25,20 @@ import controller
 import handlers
 
 
-class NotchBaseApplication(object):
-
-    urls = [(r'/', handlers.HomeHandler),
-            (r'/_threads', handlers.ThreadsHandler),
-            (r'/stopstopstop', handlers.StopHandler)]
+base_urls = [(r'/', handlers.HomeHandler),
+             (r'/_threads', handlers.ThreadsHandler),
+             (r'/stopstopstop', handlers.StopHandler)]
 
 
 class NotchTornadoApplication(tornado.web.Application):
 
     def __init__(self, configuration):
-        urls = NotchBaseApplication.urls + [
+        urls = base_urls + [
             (r'/services/notch.jsonrpc', handlers.NotchAsyncJsonRpcHandler)]
+        # Initialise the controller and start the maintenance task.
         self.controller = controller.Controller(configuration)
         eventlet.spawn_n(self.controller.run_maintenance)
+
         settings = dict(controller=self.controller)
         tornado.web.Application.__init__(self, urls, **settings)
 
@@ -47,10 +46,12 @@ class NotchTornadoApplication(tornado.web.Application):
 class NotchWSGIApplication(tornado.wsgi.WSGIApplication):
 
     def __init__(self, configuration):
-        urls = NotchBaseApplication.urls + [
+        urls = base_urls + [
             (r'/services/notch.jsonrpc', handlers.NotchSyncJsonRpcHandler)]
+        # Initialise the controller and start the maintenance task.
         self.controller = controller.Controller(configuration)
         eventlet.spawn_n(self.controller.run_maintenance)
+
         settings = dict(controller=self.controller)
         tornado.wsgi.WSGIApplication.__init__(self, urls, **settings)
 
