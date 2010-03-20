@@ -69,7 +69,8 @@ class LruDict(UserDict.IterableUserDict):
     """
 
     def __init__(self, populate_callback=None, expire_callback=None,
-                 maximum_size=1024, maximum_age=None):
+                 maximum_size=1024, maximum_age=None, dict=None):
+        UserDict.IterableUserDict.__init__(self, dict=dict)
         self._expire_callback = expire_callback
         self.maximum_size = maximum_size
         self.maximum_age = maximum_age
@@ -155,7 +156,7 @@ class LruDict(UserDict.IterableUserDict):
                 # If this exception is raised, we won't expire the item.
                 return
             except Exception, e:
-                raise
+                raise e
         try:
             del self.data[key]
         except KeyError:
