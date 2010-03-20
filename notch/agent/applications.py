@@ -29,12 +29,14 @@ base_urls = [(r'/', handlers.HomeHandler),
              (r'/_threads', handlers.ThreadsHandler),
              (r'/stopstopstop', handlers.StopHandler)]
 
+RPC_URI = r'/JSONRPC'
+
 
 class NotchTornadoApplication(tornado.web.Application):
 
     def __init__(self, configuration):
         urls = base_urls + [
-            (r'/services/notch.jsonrpc', handlers.NotchAsyncJsonRpcHandler)]
+            (RPC_URI, handlers.NotchAsyncJsonRpcHandler)]
         # Initialise the controller and start the maintenance task.
         self.controller = controller.Controller(configuration)
         eventlet.spawn_n(self.controller.run_maintenance)
@@ -47,7 +49,7 @@ class NotchWSGIApplication(tornado.wsgi.WSGIApplication):
 
     def __init__(self, configuration):
         urls = base_urls + [
-            (r'/services/notch.jsonrpc', handlers.NotchSyncJsonRpcHandler)]
+            (RPC_URI, handlers.NotchSyncJsonRpcHandler)]
         # Initialise the controller and start the maintenance task.
         self.controller = controller.Controller(configuration)
         eventlet.spawn_n(self.controller.run_maintenance)

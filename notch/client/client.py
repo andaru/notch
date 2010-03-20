@@ -150,7 +150,7 @@ class Connection(object):
     """
 
     def __init__(self, agents=None, max_concurrency=None,
-                 path='/services/notch.jsonrpc',
+                 path='/JSONRPC',
                  use_ssl=False, load_balancing_policy=None):
         """Initializer.
 
