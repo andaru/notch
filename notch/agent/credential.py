@@ -77,7 +77,7 @@ class Credential(object):
                     self.password == other.password and
                     self.enable_password == other.enable_password and
                     self._ssh_private_key == other._ssh_private_key)
-        
+
     @property
     def ssh_private_key(self):
         return self._ssh_private_key

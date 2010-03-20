@@ -111,9 +111,9 @@ def load_config_file(filename):
       errors.UnknownConfigurationFileFormatError:
         The file format was not recognised.
     """
-    format = guess_config_file_format(filename)
-    if format is not None:
-        return format(filename)
+    format_method = guess_config_file_format(filename)
+    if format_method is not None:
+        return format_method(filename)
     else:
         raise errors.UnknownConfigurationFileFormatError(
             'Config file %s not supported; supported extensions: %s' %

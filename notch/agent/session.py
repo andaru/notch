@@ -98,11 +98,13 @@ class Session(object):
             except errors.ConnectError:
                 # If we aren'table to reconnect, it's no great loss.
                 pass
-        
+
     def connect(self):
         """Connects the session using a given Credential."""
-        if self.device is None: return
-        if self._connected: return
+        if self.device is None:
+            return
+        elif self._connected:
+            return
         self.device.connect(credential=self._credential)
         self.time_last_connect = time.time()
         self._connected = True
@@ -110,8 +112,10 @@ class Session(object):
 
     def disconnect(self):
         """Disconnects the session."""
-        if self.device is None: return
-        if not self._connected: return
+        if self.device is None:
+            return
+        elif not self._connected:
+            return
         self.device.disconnect()
         self.time_last_disconnect = time.time()
         self._connected = False
@@ -132,7 +136,7 @@ class Session(object):
                     self.connect()
             except errors.ConnectError, e:
                 return errors.handle(e)
-            
+
             # Execute the method.
             self.time_last_request = time.time()
             device_method = getattr(self.device, method, None)

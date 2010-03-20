@@ -54,4 +54,3 @@ class NotchWSGIApplication(tornado.wsgi.WSGIApplication):
 
         settings = dict(controller=self.controller)
         tornado.wsgi.WSGIApplication.__init__(self, urls, **settings)
-
