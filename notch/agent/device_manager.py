@@ -64,7 +64,7 @@ class DeviceProvider(object):
 
     def _populate_match_cache(self, reg):
         try:
-            regexp = re.compile(reg, re.I)         
+            regexp = re.compile(reg, re.I)
         except:
             return frozenset()
         else:
@@ -89,8 +89,8 @@ class DeviceProvider(object):
         try:
             return socket.gethostbyname(name)
         except socket.gaierror:
-            raise adns.Error           
-        
+            raise adns.Error
+
     def _address_lookup(self, name):
         """Performs a synchronous DNS lookup for the requested address.
 
@@ -217,7 +217,7 @@ class DnsTxtDeviceProvider(DeviceProvider):
 
     RR_PREFIX = 'v=notch1'
 
-    def __init__(self, keys=('device_type','connect_method',), **kwargs):
+    def __init__(self, keys=('device_type', 'connect_method',), **kwargs):
         super(DnsTxtDeviceProvider, self).__init__(**kwargs)
         self.keys = keys
 
@@ -242,7 +242,7 @@ class DnsTxtDeviceProvider(DeviceProvider):
             status, _, _, records = self._dns.synchronous(device_name,
                                                           adns.rr.TXT)
             adns.exception(status)
-        except adns.Error, e:
+        except adns.Error:
             return None
 
         for record in records:
