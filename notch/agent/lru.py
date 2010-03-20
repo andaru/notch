@@ -28,6 +28,10 @@ class Error(Exception):
     pass
 
 
+class DontPopulateItemError(Error):
+    """Indicate to the LRU that this item should not be cached."""
+
+
 class DontExpireError(Error):
     """Indicate to the LRU that this key should not be expired."""
 
@@ -116,7 +120,12 @@ class LruDict(UserDict.IterableUserDict):
     def __getitem__(self, key):
         """Gets the value for key from the cache, maybe populating it first."""
         if key not in self.data:
-            value = self._populate_callback(key)
+            try:
+                value = self._populate_callback(key)
+            except DontPopulateItemError:
+                return None
+            except Exception, e:
+                raise e
             self._push_and_set(key, value)
         return self.data[key]
 
@@ -142,9 +151,11 @@ class LruDict(UserDict.IterableUserDict):
         if self._expire_callback and key in self.data:
             try:
                 self._expire_callback(key, self.data[key])
-            except DontExpireError, e:
+            except DontExpireError:
                 # If this exception is raised, we won't expire the item.
                 return
+            except Exception, e:
+                raise
         try:
             del self.data[key]
         except KeyError:
