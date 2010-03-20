@@ -45,8 +45,8 @@ def get_config_port_tornado():
 
     port = determine_port(configuration.get('options'))
     return configuration, port
-    
-    
+
+
 
 def load_config(config_path):
     try:
