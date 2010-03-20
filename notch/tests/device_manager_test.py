@@ -22,8 +22,8 @@ import os
 import socket
 import sys
 
-import device_manager
-import notch_config
+from notch.agent import device_manager
+from notch.agent import notch_config
 
 
 # Path to testdata root.

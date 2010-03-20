@@ -19,7 +19,7 @@
 
 import unittest
 
-import errors
+from notch.agent import errors
 
 
 class TestError(unittest.TestCase):

@@ -18,12 +18,11 @@
 
 
 import mox
-import unittest
 import os
-
-import lb_transport
-
+import unittest
 import xmlrpclib
+
+from notch.client import lb_transport
 
 
 class BackendTest(mox.MoxTestBase):

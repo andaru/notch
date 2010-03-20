@@ -18,11 +18,10 @@
 
 
 import eventlet
-
 from eventlet.green import time
 import unittest
 
-import lru
+from notch.agent import lru
 
 
 class LruTest(unittest.TestCase):

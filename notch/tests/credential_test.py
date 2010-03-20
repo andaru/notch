@@ -20,8 +20,9 @@
 import os
 import unittest
 
-import credential
-import errors
+from notch.agent import credential
+from notch.agent import errors
+
 
 # Path to testdata root.
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')

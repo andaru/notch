@@ -20,8 +20,8 @@
 import os
 import unittest
 
-import errors
-import notch_config
+from notch.agent import errors
+from notch.agent import notch_config
 
 
 # Path to testdata root.

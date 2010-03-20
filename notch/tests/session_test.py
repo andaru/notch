@@ -20,9 +20,9 @@
 import mox
 import unittest
 
-import device
-import errors
-import session
+from notch.agent import device
+from notch.agent import errors
+from notch.agent import session
 
 
 class TestSessionWithoutDevice(unittest.TestCase):

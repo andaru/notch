@@ -21,8 +21,8 @@ import ipaddr
 import mox
 import unittest
 
-import errors
-import device
+from notch.agent import errors
+from notch.agent import device
 
 
 class TestDevice(unittest.TestCase):

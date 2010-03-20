@@ -24,7 +24,7 @@ from eventlet.green import time
 
 import jsonrpclib
 
-import client
+from notch.client import client
 
 class CommandError(Exception):
     """An error occured executing the command on the host."""
