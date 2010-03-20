@@ -94,7 +94,7 @@ class Controller(object):
         """Checks the idle timeouts for all sessions."""
         start = time.time()
         logging.debug('Checking idle sessions.')
-        for session in self.sessions.values():
+        for session in [s for s in self.sessions.values() if s is not None]:
             if (not session.idle or not session.connected):
                 continue
             if (time.time() > (session.time_last_request or 0) +
@@ -132,7 +132,10 @@ class Controller(object):
           key: A session.SessionKey object, the session key.
 
         Returns:
-          A session.Session object, or None if a session couldn't be made.
+          A session.Session object.
+
+        Raises:
+          NoSuchDeviceError: The device did not exist.
         """
         device_info = self.device_manager.device_info(key.device_name)
 
@@ -142,8 +145,8 @@ class Controller(object):
                 addresses=device_info.addresses)
             return session.Session(device=device)
         else:
-            logging.error('Device %r unknown', key.device_name)
-            return None
+            raise errors.NoSuchDeviceError('Unknown device %r'
+                                           % key.device_name)
 
     def expire_session(self, unused_session_key, session_value):
         """LRU cache expiry callback for the sessions cache."""
@@ -158,6 +161,12 @@ class Controller(object):
 
         Returns:
           A session.Session object, or None if no session could be created.
+
+        Raises:
+          The callback on self.sessions may raise an Exception, see its
+          population method for more info.
+
+          ValueError: The request arguments were invalid.
         """
         # Generate the session key from arguments.
         device = kwargs.get('device_name')
@@ -173,7 +182,9 @@ class Controller(object):
         key = session.SessionKey(device_name=device,
                                  connect_method=connect_method,
                                  user=user, privilege_level=privilege_level)
+
         try:
+            # Note: Other exceptions than KeyError may occur.
             return self.sessions[key]
         except KeyError:
             return None

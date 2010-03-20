@@ -181,14 +181,15 @@ class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
         self.finish()
 
 
+#pylint: disable-msg=E1101
 class NotchAPI(object):
     """The Notch API."""
 
-    def _handle_exception(self, exc):
+    def handle_exception(self, exc):
         # TODO(afort): Add specific error codes in errors.py
-        logging.error('%s: %s', str(exc.__class__), str(exc))
-        logging.error(traceback.format_exc())
-        return self.__class__._RPC_.faults.internal_error(str(exc))
+        logging.error('%s: %s', exc.__class__.__name__, str(exc))
+        # We get _RPC_ attribute via mixin.
+        return self._RPC_.faults.internal_error(str(exc))
 
     def devices_matching(self, *args):
         try:
@@ -197,61 +198,62 @@ class NotchAPI(object):
             else:
                 return self.controller.devices_matching(args[0])
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def command(self, **kwargs):
         try:
             return self.controller.request('command', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def get_config(self, **kwargs):
         try:
             return self.controller.request('get_config', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def set_config(self, **kwargs):
         try:
             return self.controller.request('set_config', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def copy_file(self, **kwargs):
         try:
             return self.controller.request('copy_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def upload_file(self, **kwargs):
         try:
             return self.controller.request('upload_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def download_file(self, **kwargs):
         try:
             return self.controller.request('download_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def delete_file(self, **kwargs):
         try:
             return self.controller.request('delete_file', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def lock(self, **kwargs):
         try:
             return self.controller.request('lock', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
 
     def unlock(self, **kwargs):
         try:
             return self.controller.request('unlock', **kwargs)
         except errors.ApiError, e:
-            return self._handle_exception(e)
+            return self.handle_exception(e)
+#pylint: enable-msg=E1101
 
 
 class NotchAsyncJsonRpcHandler(NotchAPI, AsynchronousJSONRPCHandler):

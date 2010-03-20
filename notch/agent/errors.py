@@ -100,7 +100,11 @@ class InvalidRequestError(ApiError):
 class NoAddressesError(ApiError):
     """The device name has no addresses associated with it."""
 
+    
+class NoSuchDeviceError(ApiError):
+    """The device name requested is not known to the system."""
 
+    
 class NoSuchVendorError(ApiError):
     """The vendor requested does not exist as a device model."""
 
