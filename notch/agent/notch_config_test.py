@@ -20,6 +20,7 @@
 import os
 import unittest
 
+import errors
 import notch_config
 
 
@@ -30,22 +31,22 @@ TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
 class NotchConfigTest(unittest.TestCase):
 
     def testYamlConfigFileMissingOptionsSection(self):
-        self.assertRaises(notch_config.ConfigMissingRequiredSectionError,
+        self.assertRaises(errors.ConfigMissingRequiredSectionError,
                           notch_config.load_config_file,
                           os.path.join(TESTDATA, 'invalid_config1.yaml'))
 
     def testUnknownConfigFile(self):
-        self.assertRaises(notch_config.UnknownConfigurationFileFormatError,
+        self.assertRaises(errors.UnknownConfigurationFileFormatError,
                           notch_config.load_config_file,
                           os.path.join(TESTDATA, 'unknown_config_format.xml'))
 
     def testEmptyConfigFile(self):
-        self.assertRaises(notch_config.ConfigMissingRequiredSectionError,
+        self.assertRaises(errors.ConfigMissingRequiredSectionError,
                           notch_config.load_config_file,
                           os.path.join(TESTDATA, 'empty_config.yaml'))
 
     def testNotYamlFile(self):
-        self.assertRaises(notch_config.ConfigMissingRequiredSectionError,
+        self.assertRaises(errors.ConfigMissingRequiredSectionError,
                           notch_config.load_config_file,
                           os.path.join(TESTDATA, 'not_really_yaml.yaml'))
 
