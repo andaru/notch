@@ -50,12 +50,14 @@ class ThreadPool(object):
       num_threads: An integer, the number of threads to use in the pool.
       daemon_threads: A bool, iff True, threads are daemonised.
       max_q_in_depth: An integer, the maximum queue depth.
+      full_sleep_time: A float, the thead sleep timer when the queue is full.
     """
 
     def __init__(self, num_threads=DEFAULT_NUM_THREADS, daemon_threads=True,
-                 max_q_in_depth=None):
+                 max_q_in_depth=None, full_sleep_time=None):
         self.num_threads = num_threads
         self.max_q_in_depth = max_q_in_depth
+        self.full_sleep_time = full_sleep_time or DEFAULT_QUEUE_FULL_SLEEP_TIME
         if self.max_q_in_depth:
             self._q_in = Queue.Queue(self.max_q_in_depth)
         else:
@@ -86,7 +88,7 @@ class ThreadPool(object):
                 return self._q_in.put_nowait((task, args, kwargs))
             except Queue.Full:
                 if 'block' in kwargs and kwargs['block']:
-                    time.sleep(sleep_time)
+                    time.sleep(self.full_sleep_time)
                 else:
                     raise
 
@@ -100,15 +102,16 @@ class ThreadPool(object):
         """Processes queue items; executed by worker threads."""
         while not self._stopped:
             try:
-                task, a, kwa = self._q_in.get(True, 1.0)
+                task, a, kwa = self._q_in.get(True, self.full_sleep_time)
             except Queue.Empty:
                 continue
             # During thread shutdown, Queue may == Null.
             except AttributeError:
                 return
             try:
-                # Execute the work item.
+                # Execute the work item. pylint: disable-msg=W0142
                 task(*a, **kwa)
+            # Log but don't raise exceptions. pylint: disable-msg=W0703
             except Exception, e:
                 logging.error('Unhandled exception occured in %s. %s: %s\n%s',
                               self.__class__.__name__,
