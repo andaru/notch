@@ -38,8 +38,7 @@ class Credential(object):
     an SSH private key data field.
 
     Attributes:
-      regexp: A regular expression object used to match devices this credential
-        will be applied to. Case-insensitive.
+      regexp: The generated regular expression object for this credential.
       regexp_string: A string, the string used to form the regexp attribute.
       username: A string, the username to use for this credential.
       password: A string, the password to use for this credential. If None,
@@ -62,7 +61,7 @@ class Credential(object):
             regexp = '^' + regexp
         if not regexp.endswith('$'):
             regexp = regexp + '$'
-        self.regexp_string = regexp
+        self._regexp_string = regexp
         self.regexp = re.compile(regexp, re.I)
         self.username = username
         self.password = password
@@ -70,6 +69,15 @@ class Credential(object):
         self._ssh_private_key = ssh_private_key
         self._ssh_private_key_file = None
 
+    regexp_string = property(lambda cls: cls._regexp_string)
+
+    def __eq__(self, other):
+        return bool(self._regexp_string == other._regexp_string and
+                    self.username == other.username and
+                    self.password == other.password and
+                    self.enable_password == other.enable_password and
+                    self._ssh_private_key == other._ssh_private_key)
+        
     @property
     def ssh_private_key(self):
         return self._ssh_private_key
@@ -200,6 +208,9 @@ class YamlCredentials(Credentials):
         if credentials:
             result = []
             for credential in credentials:
+                # Empty YAML blocks (e.g., trailing '-') causes None elements.
+                if credential is None:
+                    continue
                 # Defaults to matching all devices (if no regexp attrib).
                 regexp = credential.get('regexp', '^.*$')
                 username = credential.get('username')

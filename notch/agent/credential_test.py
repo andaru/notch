@@ -79,6 +79,23 @@ class TestYamlCredentials(unittest.TestCase):
         self.assertRaises(TypeError, credential.load_credentials_file,
                           os.path.join(TESTDATA, 'invalid_credentials1.yaml'))
 
+    def testCredsFileWithBlankFinalBlock(self):
+        creds1 = credential.load_credentials_file(
+                os.path.join(TESTDATA, 'credentials1.yaml'))
+        
+        creds2 = credential.load_credentials_file(
+                os.path.join(TESTDATA, 'blank_final_group_credentials.yaml'))
+
+        self.assertEqual(len(creds1), len(creds2))
+        self.assertEqual(creds1.credentials[0],
+                         creds2.credentials[0])
+        self.assertEqual(creds1.credentials[1],
+                         creds2.credentials[1])
+        self.assertEqual(creds1.credentials[0],
+                         creds2.get_credential('ar1.foo'))
+        self.assertEqual(creds1.credentials[1],
+                         creds2.get_credential('xr1.foo'))
+        
     def testInvalidCredsFile2(self):
         self.assertRaises(errors.MissingFieldError,
                           credential.load_credentials_file,
