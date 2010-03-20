@@ -223,7 +223,7 @@ class DnsTxtDeviceProvider(DeviceProvider):
 
     def _consume_txt_rr(self, record):
         record = record.split()
-        if record[0].lower() == RR_PREFIX:
+        if record[0].lower() == self.RR_PREFIX:
             record = record[1:]
         else:
             raise StopIteration
