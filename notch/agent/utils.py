@@ -51,7 +51,7 @@ def get_config_port_tornado():
 def load_config(config_path):
     try:
         config = notch_config.get_config_from_file(config_path)
-    except notch_config.ConfigMissingRequiredSectionError, e:
+    except errors.ConfigMissingRequiredSectionError, e:
         logging.error('Config file %r did not parse a section named: %r',
                       tornado.options.options.config, str(e))
         raise
