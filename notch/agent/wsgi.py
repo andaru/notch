@@ -36,14 +36,20 @@ import utils
 
 notch_config_path = os.getenv('NOTCH_CONFIG')
 
-if not notch_config_path:
-    logging.error('The Notch WSGI application requires the NOTCH_CONFIG '
-                  'environment variable to have the path to your config file.\n'
-                  'Example:\n'
-                  '  $ export NOTCH_CONFIG=/usr/local/etc/notch/notch.yaml')
-    raise SystemExit(1)
-else:
-    _configuration = utils.load_config(notch_config_path)
-        # WSGI application object.
-    application = applications.NotchWSGIApplication(_configuration)
-    __all__ = ['application']
+
+class NoConfigError(Exception):
+    pass
+
+
+if __name__ != '__main__':
+    if not notch_config_path:
+        msg = ('The Notch WSGI application requires the NOTCH_CONFIG\n'
+               'environment variable to have the path to your config file.\n'
+               'Example:\n'
+               '  $ export NOTCH_CONFIG=/usr/local/etc/notch/notch.yaml')
+        raise NoConfigError(msg)
+    else:
+        _configuration = utils.load_config(notch_config_path)
+            # WSGI application object.
+        application = applications.NotchWSGIApplication(_configuration)
+        __all__ = ['application']
