@@ -83,24 +83,26 @@ class ThreadsHandler(BaseHandler):
                 output.append('<div>')
                 output.extend(table_head)
                 for k, v in f.f_globals.iteritems():
-                    if k.startswith('__'): continue
-                    output.append(
-                        '<tr><td class="heavy">%s</td><td class="code">%s</td>'
-                        % (cgi.escape(pprint.pformat(k)[1:-1]),
-                           cgi.escape(pprint.pformat(v)[1:-1])))
-
+                    if not k.startswith('__'):
+                        output.append(
+                            '<tr><td class="heavy">%s'
+                            '</td><td class="code">%s</td>'
+                            % (cgi.escape(pprint.pformat(k)[1:-1]),
+                               cgi.escape(pprint.pformat(v)[1:-1])))
+                    else:
+                        continue
                 output.extend(table_foot)
                 output.append('</div>')
                 globals_done = True
-
                 output.append('<p>Thread objects')
                 output.extend(table_head)
                 threads = ['<tr><td class="heavy">Name</td><td class="heavy">'
                            'Identifier</td></tr>']
                 for t in threading.enumerate():
-                    ident = str(t.ident)
                     if t.ident is None:
                         ident = '(not started)'
+                    else:
+                        ident = str(t.ident)
 
                     threads.append('<tr><td class="heavy">%s</td>'
                                    '<td class="code"><code>%s</code></td>'
@@ -168,10 +170,10 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
         self.controller = self.settings['controller']
         _tp.put(self._execute_rpc, self.request.body)
 
-    
+
 class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
-      
+
     def post(self):
         """Single-threaded JSON-RPC POST handler."""
         self.controller = self.settings['controller']
@@ -263,7 +265,7 @@ class NotchAsyncJsonRpcHandler(NotchAPI, AsynchronousJSONRPCHandler):
 class NotchSyncJsonRpcHandler(NotchAPI, SynchronousJSONRPCHandler):
     """The Notch API as presented to JSON-RPC asynchronously, for WSGI."""
 
-    
+
 
 class StopHandler(tornado.web.RequestHandler):
     """Request handler used to stop the Notch agent."""
