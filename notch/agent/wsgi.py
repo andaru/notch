@@ -41,9 +41,6 @@ class NoConfigError(Exception):
     pass
 
 
-# Note, this exits Python on import if the NOTCH_CONFIG environment
-# variable is not set; this is by design.
-
 if __name__ != '__main__':
     if not notch_config_path:
         msg = ('The Notch WSGI application requires the NOTCH_CONFIG\n'
@@ -57,6 +54,3 @@ if __name__ != '__main__':
             # WSGI application object.
         application = applications.NotchWSGIApplication(_configuration)
         __all__ = ['application']
-
-
-raise SystemExit(0)
