@@ -36,5 +36,6 @@ setuptools.setup(
                  ],
     packages = setuptools.find_packages(),
     install_requires=['distribute'],
+    test_suite='notch.tests',
     zip_safe = True,
     )
