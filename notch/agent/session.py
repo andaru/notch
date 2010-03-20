@@ -26,6 +26,7 @@ keeping devices connected until idle timers expire.
 
 
 import collections
+import logging
 import threading
 import time
 
@@ -136,7 +137,7 @@ class Session(object):
             self.time_last_request = time.time()
             device_method = getattr(self.device, method, None)
             if device_method is None:
-                raise errors.UnsupportedRequestError(
+                raise errors.InvalidRequestError(
                     'Method %r not part of the device API.' % method)
 
             self.idle = False
