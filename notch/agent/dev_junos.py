@@ -68,7 +68,7 @@ class JunosDevice(device.Device):
         stdout = channel.makefile('rb', bufsize)
         stderr = channel.makefile_stderr('rb', bufsize)
         return stdin, stdout, stderr
-        
+
     def command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
