@@ -66,7 +66,7 @@ class Device(object):
                 'vendor=%r)' % (self.__class__.__name__,
                                 self.name, self.addresses, self.connected,
                                 self.connect_method, self.vendor))
-    
+
     def _set_addresses(self, a):
         """Sets addresses suitable for the public property.
 
