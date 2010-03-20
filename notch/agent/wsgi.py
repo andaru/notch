@@ -41,15 +41,22 @@ class NoConfigError(Exception):
     pass
 
 
+# Note, this exits Python on import if the NOTCH_CONFIG environment
+# variable is not set; this is by design.
+
 if __name__ != '__main__':
     if not notch_config_path:
         msg = ('The Notch WSGI application requires the NOTCH_CONFIG\n'
                'environment variable to have the path to your config file.\n'
                'Example:\n'
                '  $ export NOTCH_CONFIG=/usr/local/etc/notch/notch.yaml')
-        raise NoConfigError(msg)
+        logging.error(msg)
+        raise SystemExit(1)
     else:
         _configuration = utils.load_config(notch_config_path)
             # WSGI application object.
         application = applications.NotchWSGIApplication(_configuration)
         __all__ = ['application']
+
+
+raise SystemExit(0)
