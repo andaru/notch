@@ -27,17 +27,9 @@ configuration source class derived from the Configuration class.
 import logging
 import yaml
 
-
-class Error(Exception):
-    """Configuration errors."""
+import errors
 
 
-class ConfigMissingRequiredSectionError(Error):
-    """The config was missing a required section."""
-
-
-class UnknownConfigurationFileFormatError(Error):
-    """The config file extension (and thus, format) was unrecognised."""
 
 
 class Configuration(object):
@@ -93,7 +85,7 @@ class YamlConfiguration(Configuration):
         """Confirms all required sections were provided."""
         for section in self.required_sections:
             if self.config.get(section) is None:
-                raise ConfigMissingRequiredSectionError(section)
+                raise errors.ConfigMissingRequiredSectionError(section)
 
     def after_load_config(self):
         self._check_required_sections()
@@ -116,13 +108,14 @@ def load_config_file(filename):
       An instance of a Configuration object subclass.
 
     Raises:
-      UnknownConfigurationFileFormatError: The file format was not recognised.
+      errors.UnknownConfigurationFileFormatError:
+        The file format was not recognised.
     """
     format = guess_config_file_format(filename)
     if format is not None:
         return format(filename)
     else:
-        raise UnknownConfigurationFileFormatError(
+        raise errors.UnknownConfigurationFileFormatError(
             'Config file %s not supported; supported extensions: %s' %
             (filename, ', '.join(CONFIG_FILE_EXTENSIONS.keys())))
 
@@ -137,7 +130,8 @@ def get_config_from_file(filename):
       A dict, the configuration object.
 
     Raises:
-      UnknownConfigurationFileFormatError: The file format was not recognised.
+      errors.UnknownConfigurationFileFormatError:
+        The file format was not recognised.
     """
     return load_config_file(filename).config
 

@@ -28,6 +28,14 @@ class Error(Exception):
     pass
 
 
+class ConfigError(Error):
+    """Configuration errors."""
+
+
+class ConfigMissingRequiredSectionError(ConfigError):
+    """The config was missing a required section."""
+
+
 class CredentialError(Error):
     """Credential errors."""
 
@@ -40,9 +48,15 @@ class MissingFieldError(CredentialError):
     """The credential was missing a required field."""
 
 
+class UnknownConfigurationFileFormatError(ConfigError):
+    """The config file extension (and thus, format) was unrecognised."""
+
+
 class UnknownCredentialsFileFormatError(CredentialError):
     """The file extension (and thus, format) was unrecognised."""
 
+
+# Notch API error classes.
 
 class ApiError(Error):
     """Errors emitted in response to an API call."""
