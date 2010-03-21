@@ -20,6 +20,11 @@ setuptools.setup(
     name='notch',
     version='0.1',
     description='The Network Operator\'s Toolkit for Command-line Hacking',
+    entry_points = {
+        'console_scripts': [
+            'notch-agent = notch.agent.agent:main'
+            ]
+        },
     requires=['eventlet', 'ipaddr', 'mox', 'paramiko', 'PyYAML', 'tornado'],
     url='http://code.google.com/p/notch/',
     author='Andrew Fort',
