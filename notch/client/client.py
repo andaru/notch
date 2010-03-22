@@ -229,9 +229,6 @@ class Connection(object):
                               self.max_concurrency)
             request.error = e
         except Exception, e:
-            logging.error('Exception %s occured during Notch method: %s',
-                          str(e.__class__), str(e))
-            logging.debug(traceback.format_exc())
             request.error = e
         return request
 
