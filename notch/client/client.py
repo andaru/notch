@@ -149,6 +149,9 @@ class Connection(object):
       load_balancing_policy: The name of the load-balancing transport class.
     """
 
+    # Prefix of all Notch API method names.
+    API_METHOD_PREFIX = '_notch_api_'
+    
     def __init__(self, agents=None, max_concurrency=None,
                  path='/JSONRPC',
                  use_ssl=False, load_balancing_policy=None):
@@ -191,7 +194,7 @@ class Connection(object):
         self._transport = None
         self._setup_agents()
 
-    def _exec_request_callback(self, gt, *args, **kwargs):
+    def _request_callback(self, gt, *args, **kwargs):
         """Asynchronously receives responses and runs the user callback.
 
         Args:
@@ -247,8 +250,49 @@ class Connection(object):
             self._notch = jsonrpclib.ServerProxy(
                 self._protocol + str(self.path), transport=self._transport)
 
+    def _exec_requests(self, requests):
+        """Executes a iterable of requests.
+
+        Args:
+          requests: An iterable of Request objects.
+
+        Returns:
+          A list of Request objects, being any synchronous responses.
+          None if there were only asynchronous requests, or no responses.
+        """
+        # For synchronous mode responses.
+        results = []
+        for r in requests:
+            method = getattr(
+                self, self.API_METHOD_PREFIX + r.notch_method, None)
+            if method is not None:
+                # Get a threenthread to run the method in and start
+                # the request timer.
+                gt = self._pool.spawn(method, r)
+                r.start()
+            else:
+                raise UnknownCommandError('%r is not a Notch API method.'
+                                          % request.notch_method)            
+            if r.callback is None:
+                # Wait for synchronous responses.
+                r = gt.wait()
+                r.finish()
+                results.append(r)
+            else:
+                # Setup callback method for asynchronous responses.
+                gt.link(self._request_callback,
+                        *r.callback_args, **r.callback_kwargs)
+        if results:
+            # Return any synchronous results.
+            return results
+        else:
+            return None
+
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
+
+        To execute multiple NotchRequests at once, see the exec_requests
+        method.
 
         Args:
           request: A NotchRequest to execute.
@@ -259,30 +303,52 @@ class Connection(object):
 
         Returns:
           The updated request object in synchronous mode, or None in async mode.
-          See the result or error attributes of the request object.
+          Inspect the result or error attributes of the request object.
         """
         if callback: request.callback = callback
         if args: request.callback_args = args
         if kwargs: request.callback_kwargs = kwargs
-        method = getattr(self, '_notch_api_' + request.notch_method, None)
-        if method is not None:
-            gt = self._pool.spawn(method, request)
-            # Don't start the timer until we've gotten a greenthread;
-            # avoid false timeouts when the pool blocks.
-            request.start()
+        result = self._exec_requests([request])
+        if result is None:
+            return result
         else:
-            raise UnknownCommandError('%r is not a Notch command.'
-                                      % request.notch_method)
-        if request.callback is None:
-            # Sync: blocks our caller until the result arrives.
-            request = gt.wait()
-            request.finish()
-            return request
-        else:
-            # Async: call the user's callback upon completion.
-            gt.link(self._exec_request_callback,
-                    *request.callback_args, **request.callback_kwargs)
+            return result[0]
 
+    def exec_requests(self, requests, callback=None, args=None, kwargs=None):
+        """Plural form of exec_request. Executes many requests.
+
+        Callback, args and kwargs aruments passed will override those
+        on every request in the requests iterable.
+
+        Args:
+          requests: NotchRequests to execute.
+          callback: None or a callable. If not None, uses asynchronous mode,
+            calling the callback with request, *args and **kwargs as arguments.
+          args: Tuple of arguments for the user callback.
+          kwargs: Dict of keyword arguments for the user callback.
+        """
+        for request in requests:
+            if callback: request.callback = callback
+            if args: request.callback_args = args
+            if kwargs: request.callback_kwargs = kwargs
+        return self._exec_requests(
+            requests, callback=callback, args=args, kwargs=kwargs)
+
+    def wait_all(self):
+        """Waits for all outstanding requests to complete.
+
+        Useful when running a client without a user interface.
+        """
+        self._pool.waitall()
+
+    num_requests_running = property(lambda x: x._pool.running())
+    num_requests_waiting = property(lambda x: x._pool.waiting())
+
+    # xmlrpclib style Proxy methods. If one initialises
+    # notch.client.Client instead of an xmlrpclib server proxy, these
+    # methods are API compatible, with added asynchornous callback
+    # functionality.
+    
     def command(self, device_name, command=None, mode=None,
                 callback=None, callback_args=None, callback_kwargs=None):
         """Executes a command in the remote host's given CLI mode.
@@ -314,12 +380,3 @@ class Connection(object):
         else:
             return r.result
         
-    def wait_all(self):
-        """Waits for all outstanding requests to complete.
-
-        Useful when running a client without a user interface.
-        """
-        self._pool.waitall()
-
-    num_requests_running = property(lambda x: x._pool.running())
-    num_requests_waiting = property(lambda x: x._pool.waiting())
