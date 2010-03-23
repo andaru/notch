@@ -193,12 +193,14 @@ class NotchAPI(object):
         # We get _RPC_ attribute via mixin.
         return self._RPC_.faults.internal_error(str(exc))
 
-    def devices_matching(self, *args):
+    def devices_matching(self, **kwargs):
         try:
-            if not args:
+            if not kwargs:
                 return
             else:
-                return self.controller.devices_matching(args[0])
+                arg = kwargs.get('regexp', '^$')
+                return list(
+                    self.controller.device_manager.devices_matching(arg))
         except errors.ApiError, e:
             return self.handle_exception(e)
 

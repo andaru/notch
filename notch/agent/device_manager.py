@@ -368,12 +368,21 @@ class DeviceManager(object):
             if result is not None:
                 return result
 
-    def devices_matching(self, reg):
-        if not reg.startswith('^'):
-            reg = '^' + reg
-        if not reg.endswith('$'):
-            reg += '$'
+    def devices_matching(self, regexp):
+        """Returns a set of device names matching the regexp.
+
+        Args:
+          regexp: A string, the regular expression to match against devices.
+
+        Returns:
+          A set of strings, device names that match the result.
+        """
+        self.scan_providers()
+        if not regexp.startswith('^'):
+            regexp = '^' + regexp
+        if not regexp.endswith('$'):
+            regexp += '$'
         result = set()
         for _, provider in sorted(self.providers.iteritems()):
-            result |= provider.devices_matching(reg)
+            result |= provider.devices_matching(regexp)
         return result
