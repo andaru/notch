@@ -215,13 +215,12 @@ class Connection(object):
                 raise NoCallbackError(
                     'Asynchronous mode used without defined callback.')
 
-    def _notch_api_command(self, request):
-        """Requests the 'command' method via Notch RPC."""
+    def _send_notch_api_request(self, method, request, kwarg_list):
         try:
-            request.result = self._notch.command(
-                device_name=request.arguments.get('device_name', None),
-                command=request.arguments.get('command', None),
-                mode=request.arguments.get('mode', None))
+            func = getattr(self._notch, method)
+            args = dict((kwarg, request.arguments.get(kwarg, None)) for
+                        kwarg in kwarg_list)
+            request.result = func(**args)
         except socket.error, e:
             # Use a "too many open files" error to set the concurrency
             # limit to the current usage level.
@@ -234,6 +233,15 @@ class Connection(object):
         except Exception, e:
             request.error = e
         return request
+        
+    def _notch_api_command(self, request):
+        """Requests the 'command' method via Notch RPC."""
+        return self._send_notch_api_request(
+            'command', request, ('device_name', 'command', 'mode'))
+
+    def _notch_api_devices_matching(self, request):
+        return self._send_notch_api_request(
+            'devices_matching', request, ('regexp', ))
 
     def _setup_agents(self):
         """Sets up the Notch JSON RPC agent connection.
@@ -272,7 +280,7 @@ class Connection(object):
                 r.start()
             else:
                 raise UnknownCommandError('%r is not a Notch API method.'
-                                          % request.notch_method)            
+                                          % r.notch_method)
             if r.callback is None:
                 # Wait for synchronous responses.
                 r = gt.wait()
