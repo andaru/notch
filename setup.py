@@ -40,7 +40,6 @@ setuptools.setup(
                  'Topic :: System :: Systems Administration',
                  ],
     packages = setuptools.find_packages(),
-    install_requires=['distribute'],
     test_suite='notch.tests',
     zip_safe = True,
     )
