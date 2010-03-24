@@ -151,7 +151,7 @@ class Connection(object):
 
     # Prefix of all Notch API method names.
     API_METHOD_PREFIX = '_notch_api_'
-    
+
     def __init__(self, agents=None, max_concurrency=None,
                  path='/JSONRPC',
                  use_ssl=False, load_balancing_policy=None):
@@ -233,7 +233,7 @@ class Connection(object):
         except Exception, e:
             request.error = e
         return request
-        
+
     def _notch_api_command(self, request):
         """Requests the 'command' method via Notch RPC."""
         return self._send_notch_api_request(
@@ -356,7 +356,7 @@ class Connection(object):
     # notch.client.Client instead of an xmlrpclib server proxy, these
     # methods are API compatible, with added asynchornous callback
     # functionality.
-    
+
     def command(self, device_name, command=None, mode=None,
                 callback=None, callback_args=None, callback_kwargs=None):
         """Executes a command in the remote host's given CLI mode.
@@ -382,9 +382,29 @@ class Connection(object):
                           callback_kwargs=callback_kwargs)
         r = self.exec_request(request)
         if request.callback:
-            return 
+            return
         if isinstance(r.error, Exception):
             raise r.error
         else:
             return r.result
-        
+
+    def devices_matching(self, regexp, callback=None, callback_args=None,
+                         callback_kwargs=None):
+        """Query the agent for a list of device names matching the regexp.
+
+        Arguments:
+          regexp: A string, the regular expression to use for matching.
+
+        Returns:
+          A list (possibly empty) of device names matching the expression.
+        """
+        request = Request('devices_matching', {'regexp': regexp},
+                          callback=callback, callback_args=callback_args,
+                          callback_kwargs=callback_kwargs)
+        r = self.exec_request(request)
+        if request.callback:
+            return
+        if isinstance(r.error, Exception):
+            raise r.error
+        else:
+            return r.result

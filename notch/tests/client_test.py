@@ -56,6 +56,9 @@ class ConnectionTest(unittest.TestCase):
 
     def testSyncrhonousRequest(self):
         m = mox.Mox()
+        # `notch` in tests below refers to the jsonrpclib Proxy
+        # instance. Mock out the responses to limit the test scope to
+        # the client code only.
         notch = m.CreateMockAnything()
         notch.command(command='show ver', device_name='localhost',
                       mode=None).AndReturn('RouterOS 1.0')
@@ -64,6 +67,7 @@ class ConnectionTest(unittest.TestCase):
         m.ReplayAll()
 
         nc = client.Connection('localhost:1')
+        # Swap in mock the easy way.
         nc._notch = notch
 
         r = client.Request('command', {'device_name': 'localhost',
@@ -112,6 +116,7 @@ class ConnectionTest(unittest.TestCase):
     def testRequestTimeoutSync(self):
         def delay(command=None, device_name=None, mode=None):
             time.sleep(0.5)
+
         m = mox.Mox()
         notch = m.CreateMockAnything()
         notch.command(command='show ver', device_name='localhost',
@@ -181,7 +186,7 @@ class ConnectionTest(unittest.TestCase):
         r = client.Request('command', {'device_name': 'localhost',
                                        'command': 'show ver'},
                            timeout_s=1)
-        
+
         result = nc.exec_request(r)
         self.assert_(isinstance(result.error, CommandError))
         self.assert_(r.completed)
@@ -202,11 +207,35 @@ class ConnectionTest(unittest.TestCase):
         r = client.Request('command', {'device_name': 'localhost',
                                        'command': 'show ver'},
                            timeout_s=1, callback=cb)
-        
+
         result = nc.exec_request(r)
         nc.wait_all()
         self.assert_(r.completed)
         m.VerifyAll()
+
+    def testDevicesMatching(self):
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.devices_matching(regexp='l.*').AndReturn(['localhost'])
+        notch.devices_matching(regexp='.*l.*').AndReturn(['localhost',
+                                                           'foo.local'])
+        notch.devices_matching(regexp='^f.*').AndReturn(['foo.local'])
+
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+        r = client.Request('devices_matching', {'regexp': 'l.*'})
+        result = nc.exec_request(r)
+        nc.wait_all()
+        self.assertEqual(result.result, ['localhost'])
+
+        r = client.Request('devices_matching', {'regexp': '.*l.*'})
+        result = nc.exec_request(r)
+        nc.wait_all()
+        self.assertEqual(result.result, ['localhost', 'foo.local'])
+
+        self.assertEqual(nc.devices_matching('^f.*'), ['foo.local'])
 
 
 if __name__ == '__main__':
