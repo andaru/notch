@@ -14,7 +14,79 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""The Notch Python client library."""
+"""
+The Notch client library
+========================   
+
+To use the Notch Client, first create a Client instance::
+
+  import notch.client
+
+  conn = notch.client.Connection('localhost:8800')
+
+If you have multiple agents to connect to, supply a list to :class:`Connection`::
+
+  conn = notch.client.Connection(['localhost:8800', 'localhost:8801'])
+
+First, create a Client instance then call Notch API methods and
+provide callbacks to receive the results after the I/O operations
+complete.
+
+Synchronous mode
+----------------
+
+Blocking or synchronous operation is the default; either craft a
+request and call the ``exec_request`` (or ``exec_requests``) method,
+or call the ``xmlrpclib`` style Proxy helper methods::
+
+  n = notch.client.Connection('localhost:8800')
+  req = notch.client.Request('command', dict(device_name='ar1.foo',
+                                             command='show version'))
+  try:
+    ar1_show_ver_output = n.exec_request(req).result
+  except notch.client.Error, e:
+    print e.__class__.__name__, str(e)
+
+or::
+
+  n = notch.client.Connection('localhost:8800')
+  ar1_show_ver_output = conn.command('ar1.foo', 'show version')
+  ar1_show_ver_output = conn.command(device_name='ar1.foo',
+                                     command='show version')
+
+Asynchronous mode
+-----------------
+
+Asynchronous operation is also possible. Define a callback method that
+takes a single argument of :class:`Request` being the completed
+request object returning from the server::
+
+  def cb(r):
+    if r.error:
+      raise r.error
+    else:
+      print r.device_name, r.result
+
+  n = notch.client.Connection('localhost:8800')
+  req = notch.client.Request('command', dict(device_name='ar1.foo',
+                                             command='show version'),                                        callback=cb)
+  ar1_show_ver_output = n.exec_request(req).result
+
+or, using the same ``cb`` callback method::
+
+  n = notch.client.Connection('localhost:8800')
+  n.command('ar1.foo', 'show version', callback=cb)
+
+
+Client load balancing
+---------------------
+
+The client tool can choose from one of a number of load-balancing
+policies (see ``notch/client/lb_transport.py``).  To change load
+balancing policies, change the 
+
+
+"""
 
 import eventlet
 # Need to monkey patch due to lazy socket references in httplib, used
@@ -68,8 +140,7 @@ class Request(object):
     Attributes:
       notch_method: A string, the Notch device API method to call.
       arguments: A dict, the keyword arguments for the request.
-      callback: A callable, if not None, call this callback with this
-        object when the request has been processed in asynchronous mode.
+      callback: None or a callable called with (callback_) *args, **kwargs.
       callback_args: Positional arguments for the request callback.
       callback_kwargs: Keyword arguments for the request callback.
       result: A string, the method result (or None if the request has not
@@ -104,6 +175,7 @@ class Request(object):
 
     valid = property(lambda x: (x.notch_method and x.arguments))
     completed = property(lambda x: x._completed())
+    is_async = property(lambda x: bool(x.callback))
 
     def _completed(self):
         if self._timeout is not None:
@@ -126,27 +198,11 @@ class Request(object):
 class Connection(object):
     """A connection to one or more Notch agents.
 
-    After creating a Client instance, you call Notch API methods and
-    provide callbacks to receive the results after the I/O operations
-    complete.
-
-    Example:
-      import notch.client
-      c = notch.client.Connection('localhost:8800')
-      req = notch.client.Request('command', {'device_name': 'ar1.foo',
-                                             'command': 'show version'})
-      ar1_show_ver_output = c.exec_request(req).result
-
-    Asynchronous operation is possible, see the callback* attributes
-    on the Request object (and the keyword arguments for the
-    exec_request method here).
-
     Attributes:
-      agents: An iterable of strings, host:port pairs for Notch Agents.
-        Also accepts a string for a single agent host:port pair.
+      agents: A string or iterable of strings, host:port pairs for Notch Agents.
       max_concurrency: An int, maximum number of concurrent requests to make.
       path: The URL to access the Notch RPC endpoint on all agents.
-      load_balancing_policy: The name of the load-balancing transport class.
+      load_balancing_policy: String name of the load-balancing transport class.
     """
 
     # Prefix of all Notch API method names.
@@ -181,19 +237,26 @@ class Connection(object):
             self._protocol = 'http://'
 
         self._lb_policy = None
-        if load_balancing_policy:
-            if hasattr(lb_transport, load_balancing_policy):
-                self._lb_policy = getattr(lb_transport, load_balancing_policy)
-            else:
-                raise NoSuchLoadBalancingPolicyError(
-                    'There is no load balancing policy named %r'
-                    % load_balancing_policy)
-
+        if load_balancing_policy is not None:
+            self.load_balancing_policy = load_balancing_policy
         self._pool = eventlet.greenpool.GreenPool(self.max_concurrency)
         self._notch = None
         self._transport = None
         self._setup_agents()
 
+    @property
+    def load_balancing_policy(self):
+        return self._load_balancing_policy
+
+    @load_balancing_policy.setter
+    def load_balancing_policy(self, lbp):
+        if hasattr(lb_transport, lbp):
+            self._lb_policy = getattr(lb_transport, lbp)
+        else:
+            raise NoSuchLoadBalancingPolicyError(
+                'There is no load balancing policy named %r' % lbp)
+        self._load_balancing_policy = lbp
+    
     def _request_callback(self, gt, *args, **kwargs):
         """Asynchronously receives responses and runs the user callback.
 
@@ -304,8 +367,7 @@ class Connection(object):
 
         Args:
           request: A NotchRequest to execute.
-          callback: None or a callable. If not None, uses asynchronous mode,
-            calling the callback with request, *args and **kwargs as arguments.
+          callback: None or an async callable called with *args, **kwargs.
           args: Tuple of arguments for the user callback.
           kwargs: Dict of keyword arguments for the user callback.
 
@@ -329,9 +391,9 @@ class Connection(object):
         on every request in the requests iterable.
 
         Args:
+
           requests: NotchRequests to execute.
-          callback: None or a callable. If not None, uses asynchronous mode,
-            calling the callback with request, *args and **kwargs as arguments.
+          callback: None or an async callable called with *args, **kwargs.
           args: Tuple of arguments for the user callback.
           kwargs: Dict of keyword arguments for the user callback.
         """
