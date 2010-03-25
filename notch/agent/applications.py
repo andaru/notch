@@ -33,6 +33,7 @@ BASE_URLS = [(r'/', handlers.HomeHandler),
 # The JSON-RPC v2.0 interface.
 JSON_RPC2_URL = r'/JSONRPC2'
 
+
 # TODO(afort): Add JSON-RPC v1 handlers (no keyword arguments).
 
 class NotchTornadoApplication(tornado.web.Application):
