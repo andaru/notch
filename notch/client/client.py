@@ -33,7 +33,7 @@ import lb_transport
 
 # Use at most this number of green threads. Default also influenced by
 # setting NOTCH_CONCURRENCY environment variable.
-DEFAULT_NOTCH_CONCURRENCY = 1000
+DEFAULT_NOTCH_CONCURRENCY = 50
 
 
 # Error classes.
@@ -383,10 +383,11 @@ class Connection(object):
         r = self.exec_request(request)
         if request.callback:
             return
-        if isinstance(r.error, Exception):
-            raise r.error
         else:
-            return r.result
+            if isinstance(r.error, Exception):
+                raise r.error
+            else:
+                return r.result
 
     def devices_matching(self, regexp, callback=None, callback_args=None,
                          callback_kwargs=None):
@@ -404,7 +405,8 @@ class Connection(object):
         r = self.exec_request(request)
         if request.callback:
             return
-        if isinstance(r.error, Exception):
-            raise r.error
         else:
-            return r.result
+            if isinstance(r.error, Exception):
+                raise r.error
+            else:
+                return r.result
