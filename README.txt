@@ -11,7 +11,6 @@ interface.
 For example, to get the version information from every device on your
 network (via a Notch Agent running at ``localhost:8080``)::
 
-
     #!/usr/bin/env python
 
     import notch.client
@@ -59,7 +58,7 @@ Configuration
 
 The Notch Agent requires some configuration to get started, and things
 are easiest if you already use the RANCID system, as the Notch Agent
-will read its configuration files to populate its inventory.
+will read its configuration files to populate its inventory.  
 
 Then, you can start a Notch Agent using the following::
 
