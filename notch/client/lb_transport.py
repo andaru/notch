@@ -97,9 +97,14 @@ class BackendPolicy(object):
     cannot be changed after the object is created.
     """
 
-    def __init__(self, backends):
+    def __init__(self, hosts):
+        """Initializer.
+
+        Args:
+          hosts: An iterable of back end host name:port pairs.
+        """
         self._lock = threading.Lock()
-        self._backends = frozenset(backends)
+        self._backends = frozenset(hosts)
         self.error_requests = {}
         self.total_requests = {}
         self.response_sizes = {}
