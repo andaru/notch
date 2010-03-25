@@ -50,8 +50,7 @@ class Backend(object):
       handler_uri: A URI string, the path to the RPC handler.
       num_rpc_inflight: An int, the number of RPCs outstanding.
       state: An int, one of the module state constants.
-      transport: An xmlrpclib.Transport subclass, the RPC
-        Transport class to use for this back end.
+      transport: The xmlrpclib.Transport subclass to use as transport.
     """
 
     def __init__(self, address=None, handler_uri=None, transport=None):
@@ -193,11 +192,11 @@ class LowestLatencyPolicy(BackendPolicy):
 class LoadBalancingTransport(xmlrpclib.Transport):
     """A load-balancing RPC transport.
 
-    This transport is not thread-safe.
+    This transport is not thread-safe, but not inherently unsafe.
 
     Attributes:
       hosts: Sequence of strings, host[:port] addresses to connect to.
-      transport: The transport class used for all back end connections.
+      transport: Transport class used for each task.
     """
 
     # Our default choice of policy.
