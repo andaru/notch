@@ -32,18 +32,24 @@ First, create a Client instance then call Notch API methods and
 provide callbacks to receive the results after the I/O operations
 complete.
 
+If you have listed your agents in the ``NOTCH_AGENTS`` environment variable,
+you can create a client as simply as::
+
+  conn = notch.client.Connection()
+
 Synchronous mode
 ----------------
 
-Blocking or synchronous operation is the default; either craft a
-request and call the ``exec_request`` (or ``exec_requests``) method,
-or call the ``xmlrpclib`` style Proxy helper methods::
+Blocking or synchronous operation is the default; to make requests,
+either craft a request and call the ``exec_request`` (or
+``exec_requests`` if you have an iterable of Request objects) method,
+or alternatively, call the ``xmlrpclib`` style Proxy helper methods::
 
-  n = notch.client.Connection('localhost:8800')
+  conn = notch.client.Connection('localhost:8800')
   req = notch.client.Request('command', dict(device_name='ar1.foo',
                                              command='show version'))
   try:
-    ar1_show_ver_output = n.exec_request(req).result
+    ar1_show_ver_output = conn.exec_request(req).result
   except notch.client.Error, e:
     print e.__class__.__name__, str(e)
 
@@ -67,15 +73,15 @@ request object returning from the server::
     else:
       print r.device_name, r.result
 
-  n = notch.client.Connection('localhost:8800')
+  conn = notch.client.Connection('localhost:8800')
   req = notch.client.Request('command', dict(device_name='ar1.foo',
                                              command='show version'),                                        callback=cb)
-  ar1_show_ver_output = n.exec_request(req).result
+  ar1_show_ver_output = conn.exec_request(req).result
 
 or, using the same ``cb`` callback method::
 
-  n = notch.client.Connection('localhost:8800')
-  n.command('ar1.foo', 'show version', callback=cb)
+  conn = notch.client.Connection('localhost:8800')
+  conn.command('ar1.foo', 'show version', callback=cb)
 
 
 Client load balancing
@@ -83,8 +89,20 @@ Client load balancing
 
 The client tool can choose from one of a number of load-balancing
 policies (see ``notch/client/lb_transport.py``).  To change load
-balancing policies, change the 
+balancing policies, set the ``load_balancing_policy=`` keyword argument
+to one of the following strings;
 
+  * ``'RoundRobin'``: Place tasks in a cyclic array and use them in
+    round-robin order.
+
+  * ``'LowestLatencyPolicy'``: Chooses the task from the task set with
+    the lowest most recent request latency.
+
+  * ``'RandomPolicy'``: To choose from available tasks randomly.
+
+For example::
+
+  conn = notch.client.Connection(load_balancing_policy='RoundRobin')
 
 """
 
