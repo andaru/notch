@@ -153,7 +153,7 @@ class Connection(object):
     API_METHOD_PREFIX = '_notch_api_'
 
     def __init__(self, agents=None, max_concurrency=None,
-                 path='/JSONRPC',
+                 path='/JSONRPC2',
                  use_ssl=False, load_balancing_policy=None):
         """Initializer.
 
