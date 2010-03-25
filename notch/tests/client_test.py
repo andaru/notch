@@ -64,6 +64,8 @@ class ConnectionTest(unittest.TestCase):
                       mode=None).AndReturn('RouterOS 1.0')
         notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
+        notch.command(command='show version and blame', device_name='localhost',
+                      mode=None).AndReturn('Too many names...')
         m.ReplayAll()
 
         nc = client.Connection('localhost:1')
@@ -80,6 +82,9 @@ class ConnectionTest(unittest.TestCase):
         r = nc.exec_request(r)
         self.assertEqual(r.result, 'Help goes here')
 
+        self.assertEqual(nc.command('localhost', 'show version and blame'),
+                         'Too many names...')
+
         m.VerifyAll()
 
     def testAsyncrhonousRequest(self):
@@ -92,6 +97,8 @@ class ConnectionTest(unittest.TestCase):
                       mode=None).AndReturn('RouterOS 1.0')
         notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
+        notch.command(command='show version and blame', device_name='localhost',
+                      mode=None).AndReturn('Too many names...')
         m.ReplayAll()
 
         nc = client.Connection('localhost:1')
@@ -110,6 +117,11 @@ class ConnectionTest(unittest.TestCase):
         result = nc.exec_request(r)
         nc.wait_all()
         self.assertEqual(self._r.result, 'Help goes here')
+
+        nc.command('localhost', 'show version and blame',
+                   callback=cb)
+        nc.wait_all()
+        self.assertEqual(self._r.result, 'Too many names...')
 
         m.VerifyAll()
 
