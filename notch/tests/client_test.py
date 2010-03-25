@@ -26,6 +26,7 @@ import jsonrpclib
 
 from notch.client import client
 
+
 class CommandError(Exception):
     """An error occured executing the command on the host."""
 
