@@ -82,7 +82,7 @@ class Session(object):
 
     @credential.setter
     def credential(self, c):
-        """Sets the session credential, re-connecting if presently connected."""
+        """Sets the session credential, reconnecting if presently connected."""
         try_to_reconnect = self._connected
         if c != self._credential:
             try:
@@ -123,26 +123,18 @@ class Session(object):
 
     def request(self, method, *args, **kwargs):
         """Executes a request on this session."""
-        self._exclusive.acquire()
-        try:
+        with self._exclusive:
             # Check the method name is valid.
             if not method in self.valid_requests:
                 raise errors.InvalidRequestError(
                     'Method %r not part of the device API.' % method)
             if self.device is None:
                 raise errors.InvalidDeviceError('Device not yet initialised.')
-            try:
-                if not self._connected:
-                    self.connect()
-            except errors.ConnectError, e:
-                return errors.handle(e)
-
+            if not self._connected:
+                self.connect()
             # Execute the method.
             self.time_last_request = time.time()
-            device_method = getattr(self.device, method, None)
-            if device_method is None:
-                raise errors.InvalidRequestError(
-                    'Method %r not part of the device API.' % method)
+            device_method = getattr(self.device, method)
 
             self.idle = False
             try:
@@ -151,14 +143,15 @@ class Session(object):
                 if 'device_name' in kwargs:
                     del kwargs['device_name']
                 try:
+                    # May raise any exception.
                     result = device_method(*args, **kwargs)
-                except errors.ApiError:
-                    self.disconnect()
-                    raise
+                except errors.ApiError, e:
+                    if e.disconnect_on_error:
+                        self.disconnect()
+                    raise e
                 else:
                     self.time_last_response = time.time()
                     return result
             finally:
                 self.idle = True
-        finally:
-            self._exclusive.release()
+
