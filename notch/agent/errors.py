@@ -61,6 +61,7 @@ class UnknownCredentialsFileFormatError(CredentialError):
 class ApiError(Error):
     """Errors emitted in response to an API call."""
     dampen_reconnect = False
+    disconnect_on_error = False
 
     def __init__(self, *args, **kwargs):
         super(ApiError, self).__init__(*args, **kwargs)
@@ -68,6 +69,10 @@ class ApiError(Error):
         self.msg = self.__class__.__doc__
 
 
+class AuthenticationError(ApiError):
+    """Device authentication (either login or enable) failed."""
+
+    
 class ConnectError(ApiError):
     """There was an error connecting to a device."""
     dampen_reconnect = True
@@ -75,6 +80,7 @@ class ConnectError(ApiError):
 
 class CommandError(ApiError):
     """There was an error whilst executing a command on a device."""
+    disconnect_on_error = True
 
 
 class DeviceWithoutAddressError(ApiError):
@@ -113,23 +119,38 @@ class NoSessionCreatedError(ApiError):
     """No session could be created for the requested arguments."""
 
 
-def tornadorpc_handle(exc):
-    """Handles the exception for the tornadorpc framework and counts it."""
+def rpc_error_handler(exc, rpc):
+    """Handles an RPC error.
+
+    Args:
+      exc: An Exception instance, the error.
+      rpc: A tornadorpc RPCParser instance (JSONRPCParser or XMLRPCParser).
+    """
+    if hasattr(rpc, 'faults'):
+        err = getattr(rpc.faults, exc.__class__.__name__, None)
+        if err is not None:
+            return err(str(exc))
+        else:
+            return rpc.faults.internal_error(str(exc))
+    else:
+        return rpc.faults.internal_error(str(exc))
 
 
-
-
-# Errors used in tornadorpc library for responses. Adds to existing JSON/XML
+# Errors used in tornadorpc library for responses. Added to existing JSON/XML
 # RPC error codes. Key integers correspond to the 'code' attribute on ApiError
 # sub-classes.
 
 error_dictionary = {
-    1: ConnectError,
-    2: DisconnectError,
-    3: InvalidDeviceError,
-    4: InvalidModeError,
-    5: InvalidRequestError,
-    6: NoAddressesError,
-    7: NoSuchVendorError,
-    8: NoSessionCreatedError,
+    'ConnectError': 1,
+    'DisconnectError': 2,
+    'InvalidDeviceError': 3,
+    'InvalidModeError': 4,
+    'InvalidRequestError': 5,
+    'NoAddressesError': 6,
+    'NoSuchDeviceError': 10,
+    'NoSuchVendorError': 7,
+    'NoSessionCreatedError': 8,
+    'AuthenticationError': 9,
 }
+
+reverse_error_dictionary = dict((v, k) for (k, v) in error_dictionary.items())
