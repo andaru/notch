@@ -1,0 +1,8 @@
+device_sources:
+    rancid_configs:
+        provider: router.db
+        root: /var/local/rancid
+        ignore_down_devices: True
+
+options:
+    credentials: /usr/local/etc/notch-credentials.yaml
