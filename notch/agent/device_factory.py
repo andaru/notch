@@ -23,10 +23,13 @@ JunOS), and must match the vendor string for devices in the configuration
 """
 
 
-import dev_junos
+from notch.agent.devices import dev_ios
+from notch.agent.devices import dev_junos
 
 
-VENDOR_MAP = {'junos': dev_junos.JunosDevice,
+VENDOR_MAP = {'cisco': dev_ios.IosDevice,
+              'ios': dev_ios.IosDevice,
+              'junos': dev_junos.JunosDevice,
               'juniper': dev_junos.JunosDevice}
 
 
