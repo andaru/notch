@@ -25,7 +25,13 @@ setuptools.setup(
             'notch-agent = notch.agent.agent:main'
             ]
         },
-    requires=['eventlet', 'ipaddr', 'mox', 'paramiko', 'PyYAML', 'tornado'],
+    install_requires=['eventlet >= 0.9.6',
+                      'ipaddr',
+                      'mox',
+                      'paramiko >= 1.7.6',
+                      'PyYAML',
+                      'tornado >= 0.2',
+                      ],
     url='http://code.google.com/p/notch/',
     author='Andrew Fort',
     author_email='notch-dev@googlegroups.com',
