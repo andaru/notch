@@ -135,23 +135,8 @@ class ThreadsHandler(BaseHandler):
 
             output.extend(locals)
             output.extend(table_foot)
-
-
-
             output.extend(foot)
         self.write(' '.join(output))
-
-
-class Faults(tornadorpc.base.Faults):
-
-    codes = tornadorpc.base.Faults.codes.copy().update(errors.error_dictionary)
-
-
-class NotchJsonRpcParser(tornadorpc.json.JSONRPCParser):
-
-    @property
-    def faults(self):
-        return Faults(self)
 
 
 class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
@@ -167,6 +152,7 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     @tornado.web.asynchronous
     def post(self):
         """Multi-threaded JSON-RPC POST handler."""
+        self._RPC_.faults.codes.update(errors.error_dictionary)
         self.controller = self.settings['controller']
         _tp.put(self._execute_rpc, self.request.body)
 
@@ -176,6 +162,7 @@ class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
 
     def post(self):
         """Single-threaded JSON-RPC POST handler."""
+        self._RPC_.faults.codes.update(errors.error_dictionary)
         self.controller = self.settings['controller']
         response_data = self._RPC_.run(self, self.request.body)
         self.set_header('Content-Type', self._RPC_.content_type)
@@ -191,7 +178,7 @@ class NotchAPI(object):
         # TODO(afort): Add specific error codes in errors.py
         logging.error('%s: %s', exc.__class__.__name__, str(exc))
         # We get _RPC_ attribute via mixin.
-        return self._RPC_.faults.internal_error(str(exc))
+        return errors.rpc_error_handler(exc, self._RPC_)
 
     def devices_matching(self, **kwargs):
         try:

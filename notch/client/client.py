@@ -36,7 +36,7 @@ If you have listed your agents in the ``NOTCH_AGENTS`` environment variable,
 you can create a client as simply as::
 
   conn = notch.client.Connection()
-
+ 
 Synchronous mode
 ----------------
 
@@ -60,12 +60,22 @@ or::
   ar1_show_ver_output = conn.command(device_name='ar1.foo',
                                      command='show version')
 
+The above doesn't really look much different than using ``xmlrpclib``,
+so why make you use a different class name and so on?
+
+One reason is that you can use ``callback=`` keyword arguments in
+these calls to execute them asynchronously.
+
 Asynchronous mode
 -----------------
 
-Asynchronous operation is also possible. Define a callback method that
-takes a single argument of :class:`Request` being the completed
-request object returning from the server::
+As Notch requests may take many seconds (we're proxying SSH
+connections to your routers, after all), having the network event call
+you back is the preferred method.
+
+To have the network call you back when the result returns, Define a
+callback method that takes a single argument of :class:`Request` being
+the completed request object returning from the server::
 
   def cb(r):
     if r.error:
@@ -117,8 +127,15 @@ import traceback
 from eventlet.green import socket
 
 import jsonrpclib
+# Disable implicit class conversion, as it only
+# really 'works' for built-in types and classes in the
+# standard library (not our objects) without prior
+# configuration anyhow.
+jsonrpclib.config.use_jsonclass = False
 
 import lb_transport
+
+import notch.agent.errors
 
 
 # Use at most this number of green threads. Default also influenced by
@@ -195,6 +212,11 @@ class Request(object):
     completed = property(lambda x: x._completed())
     is_async = property(lambda x: bool(x.callback))
 
+    def __repr__(self):
+        return '%s(notch_method=%r, arguments=%r)' % (self.__class__.__name__,
+                                                      self.notch_method,
+                                                      self.arguments)
+
     def _completed(self):
         if self._timeout is not None:
             return ((self.result is not None
@@ -217,12 +239,11 @@ class Connection(object):
     """A connection to one or more Notch agents.
 
     Attributes:
-      agents: A string or iterable of strings, host:port pairs for Notch Agents.
+      agents: A string or iterable of strings, host:port pairs of Notch Agents.
       max_concurrency: An int, maximum number of concurrent requests to make.
       path: The URL to access the Notch RPC endpoint on all agents.
       load_balancing_policy: String name of the load-balancing transport class.
     """
-
     # Prefix of all Notch API method names.
     API_METHOD_PREFIX = '_notch_api_'
 
@@ -268,6 +289,7 @@ class Connection(object):
 
     @load_balancing_policy.setter
     def load_balancing_policy(self, lbp):
+        """Selects the new load balancing policy and activates it."""
         if hasattr(lb_transport, lbp):
             self._lb_policy = getattr(lb_transport, lbp)
         else:
@@ -312,6 +334,23 @@ class Connection(object):
                               self.max_concurrency)
             request.error = e
         except Exception, e:
+            # jsonrpclib returns ProtocolError when there's a JSON-RPC error.
+            # When there is, we want to infer the error name from the error
+            # number if we know it.
+            # TODO(afort): chase up bug on tuple exc arguments in jsonrpclib.
+            if isinstance(e, jsonrpclib.ProtocolError):
+                sections = str(e).split(':')
+                try:
+                    err_no = int(sections[0].split()[1])
+                    err_name = (notch.agent.errors.reverse_error_dictionary
+                                .get(err_no,'Unknown'))
+                    e.args = (err_name, str(e))
+                except (KeyError, ValueError), _:
+                    err_name = 'Unknown'
+            else:
+                err_name = e.__class__.__name__
+                err_msg = str(e)
+                e.args = (err_name, str(e))
             request.error = e
         return request
 
