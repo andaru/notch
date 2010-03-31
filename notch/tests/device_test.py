@@ -22,7 +22,7 @@ import mox
 import unittest
 
 from notch.agent import errors
-from notch.agent import device
+from notch.agent.devices import device
 
 
 class TestDevice(unittest.TestCase):

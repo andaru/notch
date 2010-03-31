@@ -22,11 +22,11 @@ import ipaddr
 import mox
 import unittest
 
-from notch.agent import device
 from notch.agent import device_manager
 from notch.agent import errors
 from notch.agent import controller
 from notch.agent import session
+from notch.agent.devices import device
 
 
 class TestController(unittest.TestCase):
