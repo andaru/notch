@@ -17,10 +17,7 @@ notch/agent/__main__.py
 notch/agent/agent.py
 notch/agent/applications.py
 notch/agent/controller.py
-notch/agent/controller.py.orig
 notch/agent/credential.py
-notch/agent/dev_junos.py
-notch/agent/device.py
 notch/agent/device_factory.py
 notch/agent/device_manager.py
 notch/agent/errors.py
@@ -31,6 +28,9 @@ notch/agent/session.py
 notch/agent/tp.py
 notch/agent/utils.py
 notch/agent/wsgi.py
+notch/agent/devices/__init__.py
+notch/agent/devices/dev_junos.py
+notch/agent/devices/device.py
 notch/agent/templates/base.html
 notch/client/__init__.py
 notch/client/client.py
@@ -44,8 +44,6 @@ notch/docs/source/conf.py
 notch/docs/source/gettingstarted.rst
 notch/docs/source/index.rst
 notch/docs/source/introduction.rst
-notch/docs/source/_templates/layout.html
-notch/examples/cmdline.py
 notch/examples/loadtest.py
 notch/examples/mrcli.py
 notch/tests/__init__.py
