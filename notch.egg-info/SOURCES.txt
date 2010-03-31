@@ -10,6 +10,7 @@ notch.egg-info/PKG-INFO
 notch.egg-info/SOURCES.txt
 notch.egg-info/dependency_links.txt
 notch.egg-info/entry_points.txt
+notch.egg-info/requires.txt
 notch.egg-info/top_level.txt
 notch.egg-info/zip-safe
 notch/agent/__init__.py
@@ -18,6 +19,7 @@ notch/agent/agent.py
 notch/agent/applications.py
 notch/agent/controller.py
 notch/agent/credential.py
+notch/agent/decorators.py
 notch/agent/device_factory.py
 notch/agent/device_manager.py
 notch/agent/errors.py
@@ -29,8 +31,10 @@ notch/agent/tp.py
 notch/agent/utils.py
 notch/agent/wsgi.py
 notch/agent/devices/__init__.py
+notch/agent/devices/dev_ios.py
 notch/agent/devices/dev_junos.py
 notch/agent/devices/device.py
+notch/agent/devices/trans_telnet.py
 notch/agent/templates/base.html
 notch/client/__init__.py
 notch/client/client.py

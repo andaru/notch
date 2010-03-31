@@ -1,4 +1,4 @@
-Metadata-Version: 1.1
+Metadata-Version: 1.0
 Name: notch
 Version: 0.1
 Summary: The Network Operator's Toolkit for Command-line Hacking
@@ -16,9 +16,3 @@ Classifier: Operating System :: POSIX
 Classifier: Programming Language :: Python :: 2.6
 Classifier: Topic :: System :: Networking :: Monitoring
 Classifier: Topic :: System :: Systems Administration
-Requires: eventlet
-Requires: ipaddr
-Requires: mox
-Requires: paramiko
-Requires: PyYAML
-Requires: tornado
