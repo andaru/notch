@@ -65,8 +65,9 @@ class ConnectionTest(unittest.TestCase):
                       mode=None).AndReturn('RouterOS 1.0')
         notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
-        notch.command(command='show version and blame', device_name='localhost',
-                      mode=None).AndReturn('Too many names...')
+        notch.command(command='show version and blame',
+                      device_name='localhost', mode=None).AndReturn(
+            'Too many names...')
         m.ReplayAll()
 
         nc = client.Connection('localhost:1')
@@ -98,7 +99,8 @@ class ConnectionTest(unittest.TestCase):
                       mode=None).AndReturn('RouterOS 1.0')
         notch.command(command='help', device_name='localhost',
                       mode=None).AndReturn('Help goes here')
-        notch.command(command='show version and blame', device_name='localhost',
+        notch.command(command='show version and blame',
+                      device_name='localhost',
                       mode=None).AndReturn('Too many names...')
         m.ReplayAll()
 
@@ -249,6 +251,36 @@ class ConnectionTest(unittest.TestCase):
         self.assertEqual(result.result, ['localhost', 'foo.local'])
 
         self.assertEqual(nc.devices_matching('^f.*'), ['foo.local'])
+
+    def testCounters(self):
+        m = mox.Mox()
+        notch = m.CreateMockAnything()
+        notch.command(command='show ver', device_name='localhost',
+                      mode=None).AndReturn('RouterOS 1.0')
+        notch.command(command='show ver and die', device_name='localhost',
+                      mode=None).AndRaise(CommandError)
+        m.ReplayAll()
+
+        nc = client.Connection('localhost:1')
+        nc._notch = notch
+
+        r1 = client.Request('command', {'device_name': 'localhost',
+                                        'command': 'show ver'})
+        r2 = client.Request('command', {'device_name': 'localhost',
+                                        'command': 'show ver and die'})
+        r3 = client.Request('unknown', {'foo': 'bar',
+                                        'command': 'who cares'})
+        
+        _ = nc.exec_request(r1)
+        _ = nc.exec_request(r2)
+        self.assertRaises(client.UnknownCommandError, nc.exec_request, r3)
+        self.assertEqual(nc.counters.req_total, 3)
+        self.assertEqual(nc.counters.req_ok, 2)        
+        self.assertEqual(nc.counters.req_error, 1)
+        self.assertEqual(nc.counters.resp_total, 2)
+        self.assertEqual(nc.counters.resp_ok, 1)        
+        self.assert_(nc.counters.resp_bytes == len('RouterOS 1.0'))
+        self.assertEqual(nc.counters.resp_error, 1)
 
 
 if __name__ == '__main__':

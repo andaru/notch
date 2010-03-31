@@ -162,7 +162,7 @@ class Request(object):
       callback_args: Positional arguments for the request callback.
       callback_kwargs: Keyword arguments for the request callback.
       result: A string, the method result (or None if the request has not
-        yet completed).
+        yet completed or the error attribute, below, is not None).
       error: An exception if one occured during the request, or None if
         there was no error (or the request has not yet completed).
       valid: A boolean, True if the request part of the object is valid.
@@ -208,16 +208,55 @@ class Request(object):
             self._timeout = eventlet.timeout.Timeout(self.timeout_s,
                                                      TimeoutError)
 
-    def finish(self):
-        if self._timeout is not None and not self.completed:
+    def finish(self, counters=None):
+        if self._timeout is not None:
             self._timeout.cancel()
+        # Update counters.
+        if counters is not None:
+            if self.error is None:
+                counters.resp_ok += 1
+            else:
+                counters.resp_error += 1
+            counters.resp_total += 1
+            if self.result is not None:
+                counters.resp_bytes += len(self.result)
+
+
+class Counters(object):
+    """Counters used by the Connection class.
+
+    These counters are not locked, as Connection uses eventlet for
+    concurrency, which provides method level synchronisation.
+    """
+
+    MBYTE = 1048576.0
+    
+    def __init__(self):
+        self.req_total = 0
+        self.req_ok = 0
+        self.req_error = 0
+
+        self.resp_total = 0
+        self.resp_ok = 0
+        self.resp_error = 0
+        self.resp_bytes = 0
+
+    def __str__(self):
+        return (
+            'Notch Transport Counters\n'
+            '[Requests]  total: %-9d ok: %-9d error: %-9d\n'
+            '[Responses] total: %-9d ok: %-9d error: %-9d data: %.1f MB\n' %
+            (self.req_total, self.req_ok, self.req_error,
+             self.resp_total, self.resp_ok, self.resp_error,
+             self.resp_bytes / self.MBYTE))
 
 
 class Connection(object):
     """A connection to one or more Notch agents.
 
     Attributes:
-      agents: A string or iterable of strings, host:port pairs for Notch Agents.
+      agents: A string or iterable of strings, host:port pairs of Notch Agents.
+      counters: A Counters instance, the Connection's request counters.
       max_concurrency: An int, maximum number of concurrent requests to make.
       path: The URL to access the Notch RPC endpoint on all agents.
       load_balancing_policy: String name of the load-balancing transport class.
@@ -254,6 +293,7 @@ class Connection(object):
         else:
             self._protocol = 'http://'
 
+        self._counters = Counters()
         self._lb_policy = None
         if load_balancing_policy is not None:
             self.load_balancing_policy = load_balancing_policy
@@ -261,6 +301,10 @@ class Connection(object):
         self._notch = None
         self._transport = None
         self._setup_agents()
+
+    @property
+    def counters(self):
+        return self._counters
 
     @property
     def load_balancing_policy(self):
@@ -289,7 +333,7 @@ class Connection(object):
         # wait() returns immediately as we have been called.
         request = gt.wait()
         if request is not None:
-            request.finish()
+            request.finish(self._counters)
             if request.callback is not None:
                 request.callback(request, *args, **kwargs)
             else:
@@ -351,26 +395,31 @@ class Connection(object):
         """
         # For synchronous mode responses.
         results = []
+        kb = 0
         for r in requests:
             method = getattr(
                 self, self.API_METHOD_PREFIX + r.notch_method, None)
+            self._counters.req_total += 1
             if method is not None:
                 # Get a threenthread to run the method in and start
                 # the request timer.
                 gt = self._pool.spawn(method, r)
                 r.start()
             else:
+                self._counters.req_error += 1
                 raise UnknownCommandError('%r is not a Notch API method.'
                                           % r.notch_method)
             if r.callback is None:
                 # Wait for synchronous responses.
-                r = gt.wait()
-                r.finish()
-                results.append(r)
+                request = gt.wait()
+                request.finish(self._counters)
+                results.append(request)
             else:
                 # Setup callback method for asynchronous responses.
                 gt.link(self._request_callback,
                         *r.callback_args, **r.callback_kwargs)
+        # Done sending (or receiving, in the synchronous case).
+        self._counters.req_ok += 1
         if results:
             # Return any synchronous results.
             return results
