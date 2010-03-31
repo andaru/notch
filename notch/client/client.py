@@ -85,7 +85,8 @@ the completed request object returning from the server::
 
   conn = notch.client.Connection('localhost:8800')
   req = notch.client.Request('command', dict(device_name='ar1.foo',
-                                             command='show version'),                                        callback=cb)
+                                             command='show version'),
+                                             callback=cb)
   ar1_show_ver_output = conn.exec_request(req).result
 
 or, using the same ``cb`` callback method::
