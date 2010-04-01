@@ -33,7 +33,6 @@ import os
 import re
 # Import the greened socket class for async DNS lookups.
 from eventlet.green import socket
-from eventlet.green import threading
 
 import device_factory
 import lru
@@ -283,7 +282,6 @@ class DeviceManager(object):
     def __init__(self, config=None):
         self.providers = {}
         self.serve_ready = False
-        self._scan_lock = threading.Lock()
         if config:
             self.config = config
             logging.debug('Reading configuration for device manager')
@@ -343,11 +341,10 @@ class DeviceManager(object):
         """Scans all the providers to populate their indices."""
         if self.serve_ready:
             return
-        with self._scan_lock:
-            for provider in self.providers.values():
-                if not provider.ready:
-                    provider.scan()
-            self.serve_ready = True
+        for provider in self.providers.values():
+            if not provider.ready:
+                provider.scan()
+        self.serve_ready = True
 
     def device_info(self, device_name):
         """Returns any known information about a single requested device.
