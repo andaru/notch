@@ -150,6 +150,10 @@ class Error(Exception):
     pass
 
 
+class RequestCancelledError(Error):
+    """The user cancelled the request."""
+
+
 class TimeoutError(Error):
     """The client request timed out."""
 
@@ -354,7 +358,10 @@ class Connection(object):
           NoCallbackError: The request had no callback.
         """
         # wait() returns immediately as we have been called.
-        request = gt.wait()
+        try:
+            request = gt.wait()
+        except RequestCancelledError:
+            request = None
         if request is not None:
             request.finish(self._counters)
             if request.callback is not None:
@@ -451,9 +458,13 @@ class Connection(object):
                                           % r.notch_method)
             if r.callback is None:
                 # Wait for synchronous responses.
-                request = gt.wait()
-                request.finish(self._counters)
-                results.append(request)
+                try:
+                    r = gt.wait()
+                except RequestCancelledError:
+                    r.finish()
+                else:
+                    r.finish()
+                    results.append(r)
             else:
                 # Setup callback method for asynchronous responses.
                 gt.link(self._request_callback,
@@ -466,6 +477,7 @@ class Connection(object):
         else:
             return None
 
+        
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
 
@@ -510,6 +522,11 @@ class Connection(object):
             if kwargs: request.callback_kwargs = kwargs
         return self._exec_requests(
             requests, callback=callback, args=args, kwargs=kwargs)
+
+    def kill_all(self):
+        """Kills all outstanding requests.""" 
+        for gt in self._pool.coroutines_running.copy():
+            gt.kill(RequestCancelledError)
 
     def wait_all(self):
         """Waits for all outstanding requests to complete.
