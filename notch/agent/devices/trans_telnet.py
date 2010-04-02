@@ -17,6 +17,7 @@
 """Telnet device transport via telnetlib."""
 
 
+import re
 import telnetlib
 
 from eventlet.green import socket
@@ -110,7 +111,7 @@ class TelnetDeviceTransport(object):
         try:
             self._c.write(s)
         except (socket.error, EOFError), e:
-            raise SendError
+            raise notch.agent.errors.CommandError(str(e))
 
     def expect(self, re_list, timeout=None):
         if self.timeouts:
@@ -127,15 +128,16 @@ class TelnetDeviceTransport(object):
         else:
             timeout_long = self.DEFAULT_TIMEOUT_RESP_LONG
             timeout_short = self.DEFAULT_TIMEOUT_RESP_SHORT
-        self._c.write('\n')
+        self.write('\n')
         i, matchobj, pretext = self.expect([prompt], timeout_short)
         if i == - 1:
             raise errors.CommandError(
                 'Device in an unknown state, cannot continue.')
-        self._c.write(clean_command(command) + '\n')
+
+        self.write(command + '\n')
         # Expect the command to be echoed back first.
         i, matchobj, pretext = self.expect(
-            [r'^' + quote_for_re(command) + '\r\n'], timeout_short)
+            [re.escape(command) + '\r\n'], timeout_short)
         if i == -1:
             raise errors.CommandError(
                 'Device did not start response within short response timeout.')
@@ -150,10 +152,3 @@ class TelnetDeviceTransport(object):
             else:
                 return pretext[:prompt_index]
 
-
-def quote_for_re(s):
-    # TODO(afort): Quote other characters as required.
-    return s.replace('|', '\|')
-
-def clean_command(s):
-    return s.replace('|', '\|').replace('?', '')
