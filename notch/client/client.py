@@ -461,9 +461,9 @@ class Connection(object):
                 try:
                     r = gt.wait()
                 except RequestCancelledError:
-                    r.finish()
+                    r.finish(self._counters)
                 else:
-                    r.finish()
+                    r.finish(self._counters)
                     results.append(r)
             else:
                 # Setup callback method for asynchronous responses.
