@@ -6,8 +6,6 @@ Agents expose a proxy interface to router and switch command-line
 interfaces (CLI) for client tool use, as well as managing device
 connections and authentication data.
 
-Notch was developed and is currently maintained by Andrew Fort.
-
 See the Google Code `project page`__ for Notch for more development
 information.
 
@@ -18,8 +16,10 @@ Contents:
 
    introduction
    gettingstarted
+   rancid_quickstart
    agent
    client_api
+   changelog
 
 Indices and tables
 ==================
@@ -28,7 +28,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. moduleauthor:: Andrew Fort
 
 .. _CodeProjectPage: http://code.google.com/p/notch/
 

@@ -13,10 +13,10 @@ Agent HTTP servers, like ``notch.example.com:8443`` or
 The included Python client library can handle load balancing between 
 multiple agent tasks.  See ``notch/client/lb_transport.py`` and
 ``notch/client/client.py`` (the client library itself) for details
-on how to select different load-balancing strategies (advanced users only).
+on how to select different load-balancing strategies (for experienced users).
 
-Standalone and WSGI applications
---------------------------------
+Application versions
+--------------------
 The Notch Agent is distributed as an application using the Tornado_
 web-server, or as a Python WSGI application function.
 
@@ -174,7 +174,7 @@ other platforms supporting TACACS+.  ``ssh_private_key`` is an ASCII-armored
 form of the SSH private key data used for matching devices.
 
 Example credentials file
-""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the example below, the border routers (e.g., ``br01.bne03``, ``br1.mel07``)
 will use the ``automation`` username with the ``tBRpass`` and the predictable
