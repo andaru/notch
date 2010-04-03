@@ -30,7 +30,6 @@ setuptools.setup(
                       'mox',
                       'paramiko >= 1.7.6',
                       'PyYAML >= 3.0',
-                      'tornado >= 0.2',
                       ],
     url='http://code.google.com/p/notch/',
     author='Andrew Fort',
