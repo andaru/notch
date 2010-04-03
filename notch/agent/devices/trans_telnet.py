@@ -22,7 +22,6 @@ import telnetlib
 
 from eventlet.green import socket
 
-from notch.agent import decorators
 from notch.agent import errors
 
 
@@ -65,7 +64,6 @@ class TelnetDeviceTransport(object):
         self.port = port or self.DEFAULT_PORT
         self._c = None
 
-#    @decorators.retry_on_exception(DEFAULT_RETRIES, [EOFError])
     def connect(self):
         if self.timeouts:
             timeout = self.timeouts.connect or self.DEFAULT_TIMEOUT_CONNECT
