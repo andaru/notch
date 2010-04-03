@@ -33,8 +33,6 @@ class SendError(Error):
     pass
 
 
-DEFAULT_RETRIES = 3
-
 class TelnetDeviceTransport(object):
     """Telnet device transport via telnetlib.
 
