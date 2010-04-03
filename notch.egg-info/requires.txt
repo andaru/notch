@@ -3,4 +3,3 @@ ipaddr
 mox
 paramiko >= 1.7.6
 PyYAML >= 3.0
-tornado >= 0.2
