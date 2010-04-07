@@ -37,6 +37,7 @@ class JunosDevice(device.Device):
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
+        self._port = port or 22
         if self._ssh_client is not None:
             self._ssh_client.close()
         # Load the private key, if available.
@@ -46,15 +47,16 @@ class JunosDevice(device.Device):
         else:
             pkey = None
         self._ssh_client = paramiko.SSHClient()
-        self._port = port or 22
         # TODO(afort): Be more secure.
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
         try:
             self._ssh_client.connect(str(address),
                                      port=self._port,
                                      username=credential.username,
                                      password=credential.password,
-                                     pkey=pkey)
+                                     pkey=pkey,
+                                     timeout=self.timeout.connect)
         except (paramiko.ssh_exception.SSHException, socket.error), e:
             raise errors.ConnectError(str(e))
 
