@@ -25,6 +25,7 @@ import eventlet
 import collections
 import logging
 from eventlet.green import time
+import traceback
 
 import credential
 import device_factory
@@ -213,9 +214,12 @@ class Controller(object):
                 session.credential = self.credentials.get_credential(
                     kwargs['device_name'])
             return session.request(method, **kwargs)
-        except errors.ApiError, e:
-            # TODO(afort): API errors cause an error response over the wire.
-            logging.error(str(e))
         except errors.Error, e:
-            # TODO(afort): Should these be being raised?
-            logging.error(str(e))
+            raise
+        except Exception, e:
+            # 'Exceptional' exceptions occuring here are masked poorly
+            # by the returned error (usually 'Invalid Params'), so
+            # give the developer something to go by.
+            logging.error('%s: %s', str(e.__class__), str(e))
+            logging.error(traceback.format_exc())
+            raise
