@@ -24,8 +24,6 @@ Without this subsystem, device vendor information would have to be submitted
 by every client RPC.
 """
 
-import adns
-import ADNS
 import yaml
 import collections
 import logging
@@ -49,13 +47,9 @@ class DeviceProvider(object):
 
     # Override this in sub-classes.
     name = '__abstract__'
-    # Stub this out for testing.
-    dns_impl = ADNS.QueryEngine
 
     def __init__(self, **kwargs):
         """Use only keyword arguments in sub-class initialisers."""
-        # Setup an adns querier.
-        self._dns = self.__class__.dns_impl()
         self._match_cache = lru.LruDict(self._populate_match_cache)
         # DeviceInfo instances keyed by device name.
         self.devices = {}
@@ -83,34 +77,9 @@ class DeviceProvider(object):
           A list of one or more IPv4 dotted-quad address strings.
 
         Raises:
-          adns.Error: If there was an error during DNS lookup.
+          socket.gaierror: If there was an error during DNS lookup.
         """
-        try:
-            return socket.gethostbyname(name)
-        except socket.gaierror:
-            raise adns.Error
-
-    def _address_lookup(self, name):
-        """Performs a synchronous DNS lookup for the requested address.
-
-        Args:
-          name: A string, a hostname to lookup in the DNS.
-
-        Returns:
-          A list of one or more IPv4 dotted-quad address strings.
-
-        Raises:
-          adns.Error: If there was an error during DNS lookup.
-        """
-        status, _, _, aliases = self._dns.synchronous(name, adns.rr.A)
-        try:
-            adns.exception(status)
-        except adns.Error, exc:
-            logging.debug('DNS lookup error: [%s] %s (query: %s)',
-                          exc[0], exc[1], name)
-            raise
-        else:
-            return aliases
+        return socket.gethostbyname(name)
 
     def scan(self):
         """Performs a scan over the source information.
@@ -175,7 +144,7 @@ class RancidDeviceProvider(DeviceProvider):
                         continue
                 try:
                     addresses = self.address_lookup(device_name)
-                except adns.Error:
+                except socket.gaierror:
                     # Devices without an address aren't cared about.
                     continue
                 else:
@@ -209,63 +178,6 @@ class RancidDeviceProvider(DeviceProvider):
                       self.__class__.__name__, loaded, imported)
 
 
-class DnsTxtDeviceProvider(DeviceProvider):
-    """A device provider that uses DNS TXT records to retrieve metadata."""
-
-    name = 'dnstxt'
-
-    RR_PREFIX = 'v=notch1'
-
-    def __init__(self, keys=('device_type', 'connect_method',), **kwargs):
-        super(DnsTxtDeviceProvider, self).__init__(**kwargs)
-        self.keys = keys
-
-    def _consume_txt_rr(self, record):
-        record = record.split()
-        if record[0].lower() == self.RR_PREFIX:
-            record = record[1:]
-        else:
-            raise StopIteration
-        for kv in record:
-            if ':' not in kv:
-                continue
-            k, v = kv.split(':', 1)
-            if k in self.keys:
-                yield k, v
-
-    def device_info(self, device_name):
-        # TODO(afort): Use a LRU-cache, instead of this simple memoisation.
-        if device_name in self.devices:
-            return self.devices[device_name]
-        try:
-            status, _, _, records = self._dns.synchronous(device_name,
-                                                          adns.rr.TXT)
-            adns.exception(status)
-        except adns.Error:
-            return None
-
-        for record in records:
-            if record.startswith(self.RR_PREFIX):
-                kwargs = dict(
-                    [(k, v) for (k, v) in self._consume_txt_rr(record)])
-                if 'device_name' not in kwargs:
-                    kwargs['device_name'] = device_name
-                if 'addresses' not in kwargs:
-                    addresses = self.address_lookup(device_name)
-                    if addresses is None:
-                        return None
-                    kwargs['addresses'] = addresses
-                self.devices[device_name] = DeviceInfo(
-                    device_name=kwargs['device_name'],
-                    addresses=kwargs['addresses'],
-                    device_type=kwargs['device_type'])
-                return self.devices[device_name]
-
-    def scan(self):
-        """This method uses live information only, so this method is a NOP."""
-        pass
-
-
 class DeviceManager(object):
     """A class that polls, imports and exports device metadata in the system.
 
@@ -276,7 +188,7 @@ class DeviceManager(object):
 
     # TODO(afort): Set self.serve_ready to false every X minutes to update data.
 
-    provider_classes = (RancidDeviceProvider, DnsTxtDeviceProvider)
+    provider_classes = (RancidDeviceProvider, )
     config_section = 'device_sources'
 
     def __init__(self, config=None):

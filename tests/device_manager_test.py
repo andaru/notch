@@ -36,9 +36,8 @@ class DeviceManagerTest(unittest.TestCase):
         config = notch_config.get_config_from_file(
             os.path.join(TESTDATA, 'notch_config.yaml'))
         self.device_manager = device_manager.DeviceManager(config)
-        self.assertEqual(len(self.device_manager.providers), 2)
+        self.assertEqual(len(self.device_manager.providers), 1)
         self.assert_(self.device_manager.provider('old_rancid_configs'))
-        self.assert_(self.device_manager.provider('internal_dns'))
 
         self.assertEqual(
             self.device_manager.provider('old_rancid_configs').root,
@@ -66,12 +65,9 @@ class DeviceManagerTest(unittest.TestCase):
             os.path.join(TESTDATA, 'notch_config.yaml'))
         self.device_manager = device_manager.DeviceManager(config)
         self.assert_(self.device_manager.provider('old_rancid_configs'))
-        self.assert_(self.device_manager.provider('internal_dns'))
         self.assertEqual(
             self.device_manager.provider('old_rancid_configs').name,
             'router.db')
-        self.assertEqual(self.device_manager.provider('internal_dns').name,
-                         'dnstxt')
         # Unknown providers return None.
         self.assertEqual(None, self.device_manager.provider('unknown'))
         self.assertEqual(None, self.device_manager.provider(''))
