@@ -96,17 +96,11 @@ class ParamikoExpectTransport(object):
                                      username=credential.username,
                                      password=credential.password,
                                      pkey=pkey,
-                                     timeout=timeout)
-            try:
-                if self._c is None:
-                    self._c = paramiko_expect.ParamikoSpawn(None)
-                self._c.channel = self._ssh_client.invoke_shell()
-            except Exception, e:
-                import traceback
-                traceback.print_exc()
-                print e.__class__.__name__
-                print str(e)
-
+                                     timeout=self.timeouts.connect)
+            # Connect paramiko to pexpect.
+            if self._c is None:
+                self._c = paramiko_expect.ParamikoSpawn(None)
+            self._c.channel = self._ssh_client.invoke_shell()
         except (paramiko.ssh_exception.SSHException, socket.error), e:
             raise errors.ConnectError(str(e))
 
