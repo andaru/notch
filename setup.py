@@ -45,6 +45,6 @@ setuptools.setup(
                  'Topic :: System :: Systems Administration',
                  ],
     packages = setuptools.find_packages(),
-    test_suite='notch.tests',
+    test_suite='tests',
     zip_safe = True,
     )
