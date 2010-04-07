@@ -50,8 +50,8 @@ class Device(object):
 
     # Timeout values for various stages of the connection lifecycle.
     TIMEOUT_CONNECT = 30.0
-    TIMEOUT_SMALL_RESPONSE = 4.0  # e.g., Prompts/menus.
-    TIMEOUT_LARGE_RESPONSE = 180.0  # e.g., Full configs over a hosed 2meg link.
+    TIMEOUT_RESP_SHORT = 4.0  # e.g., Prompts/menus.
+    TIMEOUT_RESP_LONG = 180.0  # e.g., Full configs over a hosed 2meg link.
     TIMEOUT_DISCONNECT = 15.0
 
     def __init__(self, name=None, addresses=None):
@@ -65,6 +65,10 @@ class Device(object):
         self.name = name
         self._connected = False
         self._connect_method = None
+        self.timeouts = Timeouts(connect=self.TIMEOUT_CONNECT,
+                                 resp_short=self.TIMEOUT_RESP_SHORT,
+                                 resp_long=self.TIMEOUT_RESP_LONG,
+                                 disconnect=self.TIMEOUT_DISCONNECT)
 
     def __eq__(self, other):
         return bool(self._addresses == other._addresses and
