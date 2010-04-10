@@ -39,7 +39,7 @@ import tornado.web
 import tornadorpc.json
 import tornadorpc.base
 
-import errors
+import notch.agent.errors
 import tp
 
 
@@ -152,7 +152,7 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     @tornado.web.asynchronous
     def post(self):
         """Multi-threaded JSON-RPC POST handler."""
-        self._RPC_.faults.codes.update(errors.error_dictionary)
+        self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
         self.controller = self.settings['controller']
         _tp.put(self._execute_rpc, self.request.body)
 
@@ -162,7 +162,7 @@ class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
 
     def post(self):
         """Single-threaded JSON-RPC POST handler."""
-        self._RPC_.faults.codes.update(errors.error_dictionary)
+        self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
         self.controller = self.settings['controller']
         response_data = self._RPC_.run(self, self.request.body)
         self.set_header('Content-Type', self._RPC_.content_type)
@@ -178,7 +178,7 @@ class NotchAPI(object):
         # TODO(afort): Add specific error codes in errors.py
         logging.error('%s: %s', exc.__class__.__name__, str(exc))
         # We get _RPC_ attribute via mixin.
-        return errors.rpc_error_handler(exc, self._RPC_)
+        return notch.agent.errors.rpc_error_handler(exc, self._RPC_)
 
     def devices_matching(self, **kwargs):
         try:
@@ -188,61 +188,61 @@ class NotchAPI(object):
                 arg = kwargs.get('regexp', '^$')
                 return list(
                     self.controller.device_manager.devices_matching(arg))
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def command(self, **kwargs):
         try:
             return self.controller.request('command', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def get_config(self, **kwargs):
         try:
             return self.controller.request('get_config', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def set_config(self, **kwargs):
         try:
             return self.controller.request('set_config', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def copy_file(self, **kwargs):
         try:
             return self.controller.request('copy_file', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def upload_file(self, **kwargs):
         try:
             return self.controller.request('upload_file', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def download_file(self, **kwargs):
         try:
             return self.controller.request('download_file', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def delete_file(self, **kwargs):
         try:
             return self.controller.request('delete_file', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def lock(self, **kwargs):
         try:
             return self.controller.request('lock', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def unlock(self, **kwargs):
         try:
             return self.controller.request('unlock', **kwargs)
-        except errors.ApiError, e:
+        except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 #pylint: enable-msg=E1101
 
