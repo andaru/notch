@@ -23,7 +23,8 @@ from eventlet.green import socket
 
 import paramiko
 
-from notch.agent import errors
+import notch.agent.errors
+
 import paramiko_expect
 
 
@@ -60,7 +61,7 @@ class ParamikoExpectTransport(object):
         _ = kwargs
         self.address = address
         self.timeouts = timeouts
-        self.port = port or DEFAULT_PORT
+        self.port = 22
         self._c = paramiko_expect.ParamikoSpawn(None)
 
     @property
@@ -91,6 +92,8 @@ class ParamikoExpectTransport(object):
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
+            print self.port
+
             self._ssh_client.connect(self.address,
                                      port=self.port,
                                      username=credential.username,
@@ -102,7 +105,11 @@ class ParamikoExpectTransport(object):
                 self._c = paramiko_expect.ParamikoSpawn(None)
             self._c.channel = self._ssh_client.invoke_shell()
         except (paramiko.ssh_exception.SSHException, socket.error), e:
-            raise errors.ConnectError(str(e))
+            if e.args[1] == 'EADDRNOTAVAIL':
+                raise notch.agent.errors.ConnectError(
+                    'Port %s on %r is closed.' % (self.port, self.address))
+            else:
+                raise notch.agent.errors.ConnectError(str(e))
 
     def flush(self):
         """Eagerly flush any remaining data from the read fd."""
@@ -137,36 +144,45 @@ class ParamikoExpectTransport(object):
         try:
             self._c.send(s)
         except (socket.error, EOFError), e:
-            raise errors.CommandError('%s: %s' % (e.__class__.__name__, str(e)))
+            raise notch.agent.errors.CommandError(
+                '%s: %s' % (e.__class__.__name__, str(e)))
 
     def expect(self, re_list, timeout=None):
-        if self.timeouts:
-            timeout = self.timeouts.resp_long or self.DEFAULT_TIMEOUT_RESP_LONG
-        else:
-            timeout = self.DEFAULT_TIMEOUT_RESP_LONG
+        if timeout is None and self.timeouts:
+            timeout = self.timeouts.resp_long
         return self._c.expect(re_list, timeout=timeout)
 
-    def command(self, command, prompt, timeout=None):
+    def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
+                command_trailer='\n', expect_command=True):
         """Executes the command, returning any data prior to the prompt."""
         timeout_long = timeout or self.timeouts.resp_long
         timeout_short = timeout or self.timeouts.resp_short
-        self.write('\n')
-        i = self.expect([re.escape(prompt)], timeout_short)
+        self.write(command_trailer)
+        if isinstance(prompt, str):
+            esc_prompt = re.escape(prompt)
+        else:
+            esc_prompt = prompt
+        i = self.expect([esc_prompt], timeout_short)
         if i == - 1:
-            raise errors.CommandError(
+            raise notch.agent.errors.CommandError(
                 'Device in an unknown state, cannot continue.')
+        self.write(command + command_trailer)
 
-        self.write(command + '\n')
-        # Expect the command to be echoed back first.
-        i = self.expect([re.escape(command) + '\r\n'], timeout_short)
+        # Expect the command to be echoed back first, perhaps.
+        # If the device echoes back the 'full' command for the
+        # abbreviated command entered, this should be disabled.
+        if expect_command:
+            i = self.expect(
+                [re.escape(command) + expect_trailer], timeout_short)
+        else:
+            i = self.expect([expect_trailer], timeout_short)
         if i == -1:
-            raise errors.CommandError(
+            raise notch.agent.errors.CommandError(
                 'Device did not start response within short response timeout.')
-
-        i = self.expect([re.escape(prompt)], timeout_long)
+        i = self.expect([esc_prompt], timeout_long)
         if i == -1:
-            raise errors.CommandError('Prompt not found after command %r.' %
-                                      command)
+            raise notch.agent.errors.CommandError(
+                'Prompt not found after command %r.' % command)
         else:
             prompt_index = self._c.before.rfind(prompt)
             if prompt_index == -1:
