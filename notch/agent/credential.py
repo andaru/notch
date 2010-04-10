@@ -35,11 +35,15 @@ class Credential(object):
 
     A credential is login information used by the agent to authenticate to
     a device. We consider the concept of an 'enable' password as well as
-    an SSH private key data field.
+    an SSH private key data field. Aditionally, whether to automatically
+    enable (for e.g., on Cisco IOS hosts) and which connection method
+    to use for devices matching this credential are recorded.
 
     Attributes:
       regexp: The generated regular expression object for this credential.
       regexp_string: A string, the string used to form the regexp attribute.
+      auto_enable: A boolean, whether the agent will attempt to enable.
+      connect_method: A string, the connection method for this credential.
       username: A string, the username to use for this credential.
       password: A string, the password to use for this credential. If None,
         no password will be used.
@@ -49,7 +53,8 @@ class Credential(object):
     """
 
     def __init__(self, regexp=None, username=None, password=None,
-                 enable_password=None, ssh_private_key=None):
+                 enable_password=None, ssh_private_key=None, auto_enable=False,
+                 connect_method=None):
         """Initialiser.
 
         Args:
@@ -63,6 +68,8 @@ class Credential(object):
             regexp = regexp + '$'
         self._regexp_string = regexp
         self.regexp = re.compile(regexp, re.I)
+        self.auto_enable = auto_enable
+        self.connect_method = connect_method
         self.username = username
         self.password = password
         self.enable_password = enable_password
@@ -213,6 +220,8 @@ class YamlCredentials(Credentials):
                     continue
                 # Defaults to matching all devices (if no regexp attrib).
                 regexp = credential.get('regexp', '^.*$')
+                auto_enable = credential.get('auto_enable')
+                connect_method = credential.get('connect_method')
                 username = credential.get('username')
                 password = credential.get('password')
                 enable_password = credential.get('enable_password')
@@ -223,7 +232,9 @@ class YamlCredentials(Credentials):
                 result.append(Credential(regexp=regexp, username=username,
                                          password=password,
                                          enable_password=enable_password,
-                                         ssh_private_key=ssh_private_key))
+                                         ssh_private_key=ssh_private_key,
+                                         auto_enable=auto_enable,
+                                         connect_method=connect_method))
             self.credentials = result
         else:
             self.credentials = []

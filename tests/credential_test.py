@@ -72,8 +72,10 @@ class TestYamlCredentials(unittest.TestCase):
         cred1 = creds.credentials[1]
         self.assertEqual(cred0.username, 'fred')
         self.assertEqual(cred0.regexp_string, '^ar.*$')
+        self.assert_(cred0.connect_method is None)
         self.assertEqual(cred1.password, 'bar')
         self.assertEqual(cred1.enable_password, 'enable_bar')
+        self.assertEqual(cred1.connect_method, 'sshv2')
         self.assert_(cred1.ssh_private_key is None)
 
     def testInvalidCredsFile1(self):
