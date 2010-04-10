@@ -62,6 +62,7 @@ class ApiError(Error):
     """Errors emitted in response to an API call."""
     dampen_reconnect = False
     disconnect_on_error = False
+    retry = False
 
     def __init__(self, *args, **kwargs):
         super(ApiError, self).__init__(*args, **kwargs)
@@ -89,6 +90,15 @@ class DeviceWithoutAddressError(ApiError):
 
 class DisconnectError(ApiError):
     """There was an error disconnecting from a device."""
+
+
+class EnableError(ApiError):
+    """There was an error attempting to receive enable authorization."""
+
+
+class EOFError(ApiError):
+    """End of file received from device."""
+    retry = True
 
 
 class InvalidDeviceError(ApiError):
