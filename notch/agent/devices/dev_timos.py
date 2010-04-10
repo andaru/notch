@@ -21,9 +21,10 @@ import logging
 import re
 from eventlet.green import socket
 
-from notch.agent import errors
+import notch.agent.errors
 
 import paramiko
+import pexpect
 
 import device
 import trans_paramiko_expect
@@ -37,10 +38,16 @@ class EnableFailedError(Exception):
 
 
 class TimosDevice(device.Device):
-    """Timetra/Alcatel TimOS device model."""
+    """Timetra/Alcatel TimOS device model.
 
-    PROMPT = re.compile(r'\S+\s?[>#]')
+    Connect methods supported:
+      sshv2 (via Paramiko in interactive mode with pexpect)
+    """
+
+    PROMPT = re.compile(r'\S+\s?[\$#]')
     ERR_NOT_SETUP = 'Password required, but none set'
+
+    CONNECT_METHODS = ('sshv2', )
 
     def __init__(self, name=None, addresses=None):
         super(TimosDevice, self).__init__(name=name, addresses=addresses)
@@ -51,20 +58,21 @@ class TimosDevice(device.Device):
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
+        
         self._transport.address = str(address)
         self._transport.port = port or self._port
         self._transport.connect(credential)
         self._get_prompt()
         self._disable_pager()
-        if credential.enable_password:
-            self._enable(credential.enable_password)
+#        if credential.enable_password:
+#            self._enable(credential.enable_password)
 
     def _get_prompt(self):
         self._transport.write('\n')
         i = self._transport.expect([self.PROMPT], 10)
         if i == 0:
             self._prompt = self._transport.match.group(0)
-            logging.debug('Prompt is now: %r', self._prompt)
+            logging.debug('Expected prompt is now: %r', self._prompt)
             return
         else:
             logging.error('Failed to get prompt on %s', self.name)
@@ -92,7 +100,7 @@ class TimosDevice(device.Device):
             elif i == 2:
                 continue
             elif i == 3:
-                raise errors.AuthenticationError(
+                raise notch.agent.errors.AuthenticationError(
                     'Enable authentication failed.')
 
     def _disconnect(self):
@@ -100,10 +108,21 @@ class TimosDevice(device.Device):
 
     def _disable_pager(self):
         logging.debug('Disabling pager')
-        self._transport.command('terminal length 0', self._prompt)
+        self._transport.command('environment no more', self._prompt,
+                                command_trailer='\r', expect_trailer=''
+
+                                
+                                )
         logging.debug('Disabled pager')
 
-    def command(self, command, mode=None):
+    def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
-        return self._transport.command(command, self._prompt)
+        try:
+            return self._transport.command(command, self._prompt,
+                                           expect_command=False,
+                                           command_trailer='\r',
+                                           expect_trailer='[^\r]*\r\n')
+        except (EOFError, pexpect.EOF), e:
+            raise notch.agent.errors.EOFError(str(e))
+

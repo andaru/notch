@@ -22,7 +22,7 @@ import socket
 
 import paramiko
 
-from notch.agent import errors
+import notch.agent.errors
 
 import device
 
@@ -56,9 +56,9 @@ class JunosDevice(device.Device):
                                      username=credential.username,
                                      password=credential.password,
                                      pkey=pkey,
-                                     timeout=self.timeout.connect)
+                                     timeout=self.timeouts.connect)
         except (paramiko.ssh_exception.SSHException, socket.error), e:
-            raise errors.ConnectError(str(e))
+            raise notch.agent.errors.ConnectError(str(e))
 
     def _disconnect(self):
         self._ssh_client.close()
@@ -76,16 +76,18 @@ class JunosDevice(device.Device):
         stderr = channel.makefile_stderr('rb', bufsize)
         return stdin, stdout, stderr
 
-    def command(self, command, mode=None):
+    def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
-        # TODO(afort): Combine output channels (e.g., for JunOS during
-        # 'traceroute', where some output appears on stderr and some on stdout).
+        # TODO(afort): Combine output channels; e.g., for JunOS during
+        # 'traceroute', where some output appears on stderr and some on stdout.
         try:
             stdin, stdout, stderr = self._exec_command(command,
                                                        combine_stderr=True)
         except paramiko.ssh_exception.SSHException, e:
-            raise errors.CommandError(str(e))
+            raise notch.agent.errors.CommandError(str(e))
+        except EOFError, e:
+            raise notch.agent.errors.EOFError(str(e))
         else:
             stdin.close()
         try:

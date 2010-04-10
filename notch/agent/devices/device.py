@@ -20,7 +20,7 @@ import collections
 import ipaddr
 import logging
 
-from notch.agent import errors
+import notch.agent.errors
 
 
 Timeouts = collections.namedtuple('Timeouts',
@@ -44,6 +44,10 @@ class Device(object):
     # In concrete classes, set this to the vendor OS identifier.
     vendor = None
 
+    # Values of the attribute connect_method supported by this device.
+    CONNECT_METHODS = tuple()
+
+    # connect_method.
     # Timeout values used by session to determine liveness/etc.
     # Override as required in concrete device classes.
     MAX_IDLE_TIME = 1800.0
@@ -56,15 +60,19 @@ class Device(object):
 
     def __init__(self, name=None, addresses=None):
         self._addresses = []
+
         try:
             self._set_addresses(addresses)
         except ipaddr.Error, e:
             logging.error('Error parsing addresses %s: %s',
                           addresses, str(e))
             self._addresses = []
+
         self.name = name
         self._connected = False
         self._connect_method = None
+        self._current_credential = None
+
         self.timeouts = Timeouts(connect=self.TIMEOUT_CONNECT,
                                  resp_short=self.TIMEOUT_RESP_SHORT,
                                  resp_long=self.TIMEOUT_RESP_LONG,
@@ -107,16 +115,19 @@ class Device(object):
     def connect(self, credential=None, connect_method=None):
         """Connects to the device."""
         if self.addresses is None or self.addresses == []:
-            raise errors.DeviceWithoutAddressError
-        if connect_method is not None:
+            raise notch.agent.errors.DeviceWithoutAddressError(self.name)
+        if (connect_method is not None and
+            connect_method in self.CONNECT_METHODS):
             self._connect_method = connect_method
+        self._current_credential = credential
+
         # Try all of the available addresses.
         last_exc = None
         for address in self.addresses:
             try:
                 self._connect(address=address, credential=credential)
                 success = True
-            except errors.ConnectError, e:
+            except notch.agent.errors.ConnectError, e:
                 success = False
                 last_exc = e
                 logging.error('Connect failed to %s on %s: [%s] %s',
@@ -142,7 +153,15 @@ class Device(object):
 
     def command(self, command, mode=None):
         """Executes a command on the device."""
-        raise NotImplementedError
+        try:
+            return self._command(command, mode=mode)
+        except notch.agent.errors.ApiError, e:
+            if hasattr(e, 'retry') and e.retry:
+                if not self._connected:
+                    self.connect(credential=self._current_credential,
+                                 connect_method=self._connect_method)
+                self._command(command, mode=mode)
+                    
 
     def get_config(self, source, mode=None):
         """Gets the configuration of the source in the desired mode."""
