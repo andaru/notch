@@ -27,10 +27,11 @@ import logging
 from eventlet.green import time
 import traceback
 
+import notch.agent.errors
+
 import credential
 import device_factory
 import device_manager
-import errors
 import lru
 import notch_config
 import session
@@ -146,8 +147,8 @@ class Controller(object):
                 addresses=device_info.addresses)
             return session.Session(device=device)
         else:
-            raise errors.NoSuchDeviceError('Unknown device %r'
-                                           % key.device_name)
+            raise notch.agent.errors.NoSuchDeviceError('Unknown device %r'
+                                                       % key.device_name)
 
     def expire_session(self, unused_session_key, session_value):
         """LRU cache expiry callback for the sessions cache."""
@@ -204,7 +205,7 @@ class Controller(object):
         session = self.get_session(**kwargs)
 
         if session is None:
-            raise errors.NoSessionCreatedError(
+            raise notch.agent.errors.NoSessionCreatedError(
                 'No session available for request arguments %r' % kwargs)
 
         try:
@@ -214,7 +215,7 @@ class Controller(object):
                 session.credential = self.credentials.get_credential(
                     kwargs['device_name'])
             return session.request(method, **kwargs)
-        except errors.Error, e:
+        except notch.agent.errors.Error, e:
             raise
         except Exception, e:
             # 'Exceptional' exceptions occuring here are masked poorly
