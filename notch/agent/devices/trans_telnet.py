@@ -20,9 +20,12 @@
 import re
 import telnetlib
 
+import fdpexpect
+import pexpect
+
 from eventlet.green import socket
 
-from notch.agent import errors
+import notch.agent.errors
 
 
 class Error(Exception):
@@ -62,18 +65,31 @@ class TelnetDeviceTransport(object):
         self.port = port or self.DEFAULT_PORT
         self._c = None
 
-    def connect(self):
-        if self.timeouts:
-            timeout = self.timeouts.connect or self.DEFAULT_TIMEOUT_CONNECT
-        else:
-            timeout = self.DEFAULT_TIMEOUT_CONNECT
+    @property
+    def match(self):
+        if self._expect:
+            return self._expect.match
+
+    @property
+    def before(self):
+        if self._expect:
+            return self._expect.before
+
+    @property
+    def after(self):
+        if self._expect:
+            return self._expect.after
+
+    def connect(self, unused_credential):
+        timeout = self.timeouts.connect
         try:
             self._c = telnetlib.Telnet(str(self.address), self.port, timeout)
+            self._expect = fdpexpect.fdspawn(self._c.fileno())
         except socket.error, e:
-            raise errors.ConnectError('Error connecting to %s. %s: %s'
-                                      % (str(self.address),
-                                         e.__class__.__name__, str(e)))
-
+            raise notch.agent.errors.ConnectError(
+                'Error connecting to %s. %s: %s'
+                % (str(self.address), e.__class__.__name__, str(e)))
+        
     def flush(self):
         """Eagerly flush any remaining data from the read fd."""
         if self._c is None:
@@ -105,16 +121,14 @@ class TelnetDeviceTransport(object):
 
     def write(self, s):
         try:
-            self._c.write(s)
+            self._expect.send(s)
         except (socket.error, EOFError), e:
-            raise errors.CommandError('%s: %s' % (e.__class__.__name__, str(e)))
+            raise notch.agent.errors.CommandError(
+                '%s: %s' % (e.__class__.__name__, str(e)))
 
     def expect(self, re_list, timeout=None):
-        if self.timeouts:
-            timeout = self.timeouts.resp_long or self.DEFAULT_TIMEOUT_RESP_LONG
-        else:
-            timeout = self.DEFAULT_TIMEOUT_RESP_LONG
-        return self._c.expect(re_list, timeout=timeout)       
+        timeout = timeout or self.timeouts.resp_long
+        return self._expect.expect(re_list, timeout=timeout)      
 
     def command(self, command, prompt, timeout=None):
         """Executes the command, returning any data prior to the prompt."""
@@ -125,26 +139,29 @@ class TelnetDeviceTransport(object):
             timeout_long = self.DEFAULT_TIMEOUT_RESP_LONG
             timeout_short = self.DEFAULT_TIMEOUT_RESP_SHORT
         self.write('\n')
-        i, matchobj, pretext = self.expect([prompt], timeout_short)
-        if i == - 1:
-            raise errors.CommandError(
+        i = self.expect([re.escape(prompt)], timeout_short)
+        if i != 0:
+            raise notch.agent.errors.CommandError(
                 'Device in an unknown state, cannot continue.')
 
         self.write(command + '\n')
         # Expect the command to be echoed back first.
-        i, matchobj, pretext = self.expect(
-            [re.escape(command) + '\r\n'], timeout_short)
-        if i == -1:
-            raise errors.CommandError(
+        i = self.expect(
+            [re.escape(command) + '\r\n', pexpect.TIMEOUT,
+             pexpect.EOF], timeout_short)
+        if i != 0:
+            raise notch.agent.errors.CommandError(
                 'Device did not start response within short response timeout.')
 
-        i, matchobj, pretext = self.expect([prompt], timeout_long)
-        if i == -1:
-            raise errors.CommandError('Prompt not found after command.')
+        i = self.expect([re.escape(prompt), pexpect.TIMEOUT, pexpect.EOF],
+                        timeout_long)
+        if i != 0:
+            raise notch.agent.errors.CommandError(
+                'Prompt not found after command.')
         else:
-            prompt_index = pretext.rfind(prompt)
+            prompt_index = self.before.rfind(prompt)
             if prompt_index == -1:
-                return pretext
+                return self.before
             else:
-                return pretext[:prompt_index]
+                return self.before[:prompt_index]
 
