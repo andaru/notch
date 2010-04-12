@@ -32,6 +32,8 @@ import time
 import traceback
 
 import jsonrpclib
+# Disable automatic class translation.
+jsonrpclib.config.use_jsonclass = False
 
 import tornado.ioloop
 import tornado.options
@@ -188,6 +190,26 @@ class NotchAPI(object):
                 arg = kwargs.get('regexp', '^$')
                 return list(
                     self.controller.device_manager.devices_matching(arg))
+        except notch.agent.errors.ApiError, e:
+            return self.handle_exception(e)
+
+    def devices_info(self, **kwargs):
+        try:
+            if not kwargs:
+                return
+            else:
+                arg = kwargs.get('regexp', '^$')
+                result = {}
+                devices = self.controller.device_manager.devices_matching(arg)
+                for d in devices:
+                    dev_info = self.controller.device_manager.device_info(d)
+                    if isinstance(dev_info.addresses, list):
+                        add = dev_info.addresses
+                    else:
+                        add = [dev_info.addresses]
+                    result[d] = {'device_type': dev_info.device_type,
+                                 'addresses': add}
+                return result
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
