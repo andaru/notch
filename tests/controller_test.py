@@ -25,6 +25,7 @@ import unittest
 from notch.agent import device_manager
 from notch.agent import errors
 from notch.agent import controller
+from notch.agent import credential
 from notch.agent import session
 from notch.agent.devices import device
 
@@ -34,6 +35,8 @@ class TestController(unittest.TestCase):
     def setUp(self):
         self.controller = controller.Controller()
         self.mock = mox.Mox()
+        self.credential = credential.Credential(regexp='.*',
+                                                connect_method='foo')
 
     def tearDown(self):
         self.mock.UnsetStubs()
@@ -142,10 +145,12 @@ class TestController(unittest.TestCase):
         dev = self.mock.CreateMock(device.Device)
         dev.name = 'xr1.foo'
         dev.vendor = 'junos'
-        dev.connect(credential=None).AndReturn(None)
+        dev.connect(credential=self.credential,
+                    connect_method='foo').AndReturn(None)
         dev.disconnect().AndReturn(None)
         self.mock.ReplayAll()
         sess = session.Session(device=dev)
+        sess.credential = self.credential
         sess.connect()
         self.controller.expire_session(None, sess)
         # No value assertions, just confirm all the device calls are made.

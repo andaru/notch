@@ -20,6 +20,7 @@
 import mox
 import unittest
 
+from notch.agent import credential
 from notch.agent import errors
 from notch.agent import session
 from notch.agent.devices import device
@@ -55,8 +56,11 @@ class TestSessionAbstractDevice(unittest.TestCase):
 
     def setUp(self):
         self.device = device.Device(name='test1.popname', addresses='10.0.0.1')
+        self.credential = credential.Credential(regexp='.*',
+                                                connect_method='foo')
         self.session = session.Session(device=self.device)
-
+        self.session.credential = self.credential
+        
     def testDeviceDetails(self):
         self.assertEqual(self.device.name, 'test1.popname')
         self.assertEqual(str(self.device.addresses[0]), '10.0.0.1')
@@ -77,23 +81,29 @@ class TestSessionMockDevice(unittest.TestCase):
 
     def setUp(self):
         self.mock = mox.Mox()
+        self.credential = credential.Credential(regexp='.*',
+                                                connect_method='foo')
 
     def testConnect(self):
         dev = self.mock.CreateMock(device.Device)
-        dev.connect(credential=None).AndReturn(None)
+        dev.connect(credential=self.credential,
+                    connect_method='foo').AndReturn(None)
         self.mock.ReplayAll()
         s = session.Session(device=dev)
+        s.credential = self.credential
         s.connect()
         self.assertTrue(s.connected)
         self.mock.VerifyAll()
 
     def testDisconnect(self):
         dev = self.mock.CreateMock(device.Device)
-        dev.connect(credential=None).AndReturn(None)
+        dev.connect(credential=self.credential,
+                    connect_method='foo').AndReturn(None)
         dev.disconnect().AndReturn(None)
         self.mock.ReplayAll()
         s = session.Session(device=dev)
-        dev.connected = False
+        s.credential = self.credential
+        dev.connectxfed = False
         self.assertFalse(s.connected)
         s.connect()
         dev.connected = True
@@ -105,20 +115,24 @@ class TestSessionMockDevice(unittest.TestCase):
 
     def testCommandRequest(self):
         dev = self.mock.CreateMock(device.Device)
-        dev.connect(credential=None).AndReturn(None)
+        dev.connect(credential=self.credential,
+                    connect_method='foo').AndReturn(None)
         dev.command('show version').AndReturn('# Config data')
         self.mock.ReplayAll()
         s = session.Session(device=dev)
+        s.credential = self.credential
         result = s.request('command', 'show version')
         self.assertEqual(result, '# Config data')
         self.mock.VerifyAll()
 
     def testCommandRequestInShellMode(self):
         dev = self.mock.CreateMock(device.Device)
-        dev.connect(credential=None).AndReturn(None)
+        dev.connect(credential=self.credential,
+                    connect_method='foo').AndReturn(None)
         dev.command('show version', mode='shell').AndReturn('# Shell mode')
         self.mock.ReplayAll()
         s = session.Session(device=dev)
+        s.credential = self.credential
         result = s.request('command', 'show version', mode='shell')
         self.assertEqual(result, '# Shell mode')
         self.mock.VerifyAll()
