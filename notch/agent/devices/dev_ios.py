@@ -55,40 +55,39 @@ class IosDevice(device.Device):
     PROMPT = re.compile(r'\S+\s?[>#]')
     ERR_NOT_SETUP = 'Password required, but none set'
 
+    DEFAULT_CONNECT_METHOD = 'sshv2'
+
     def __init__(self, name=None, addresses=None):
         super(IosDevice, self).__init__(name=name, addresses=addresses)
         self._ssh_client = None
+        self.connect_methods = ('telnet', 'sshv2')
         # Not used directly.
         self._port = None
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
+        port = port or self._port
         connect_method = connect_method or self.connect_method
-        if connect_method == 'sshv2':
+        if connect_method == 'sshv2' or connect_method is None:
             self._transport = trans_paramiko_expect.ParamikoExpectTransport(
-                timeouts=self.timeouts)
-        elif connect_method == 'telnet' or connect_method is None:
+                timeouts=self.timeouts, port=port, address=str(address))
+        elif connect_method == 'telnet':
             self._transport = trans_telnet.TelnetDeviceTransport(
-                timeouts=self.timeouts)
+                timeouts=self.timeouts, port=port, address=str(address))
         else:
             raise ValueError('Unsupported connect_method: %r' %
                              connect_method)
-        self._transport.address = str(address)
-        if port:
-            self._transport.port = port
         # May raise notch.agent.errors.ConnectError
         self._transport.connect(credential)
         self._login(credential.username, credential.password)
         self._get_prompt()
-        # TODO(afort): Add .autoenable to the credential record.
-        if credential.enable_password:
-            logging.debug('Enabling on %r' % self.name)
+        if credential.enable_password and credential.auto_enable:
             self._enable(credential.enable_password)
         self._disable_pager()
 
     def _get_prompt(self):
         self._transport.write('\n')
-        i = self._transport.expect([self.PROMPT], 0.0)
+        i = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
         if i == 0:
             self._prompt = self._transport.match.group(0)
             logging.debug('Expected prompt is now: %r', self._prompt)
@@ -97,7 +96,16 @@ class IosDevice(device.Device):
             logging.error('Failed to get prompt on %s', self.name)
 
     def _enable(self, enable_password):
+        logging.debug('Enabling on %r' % self.name)
+        self._transport.write('\n')
+        try:
+            _ = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
+        except (pexpect.EOF, pexpect.TIMEOUT), e:
+            raise notch.agent.errors.EnableError('Could not find prompt prior '
+                                                 'to enabling.')
+
         self._transport.write('enable\n')
+        sent_password = False
         while True:
             i = self._transport.expect([r'Password:',
                                         r'timeout expired',
@@ -108,21 +116,29 @@ class IosDevice(device.Device):
                                         ], 10)
             if i == 0 or i == 1:
                 self._transport.write(enable_password + '\n')
+                sent_password = True
                 continue
             elif i == 2:
                 raise notch.agent.errors.AuthenticationError(
                     'Enable authentication failed.')
             elif i == 3:
-                logging.debug('Enabled on %s', self.name)
-                # The prompt will change when we enable.
-                self._prompt = self._transport.match.group(0)
-                logging.debug('Prompt is now: %r', self._prompt)
-                return
+                # Saw the prompt.
+                if sent_password:
+                    logging.debug('Enabled on %s', self.name)
+                    # The prompt will change when we enable.
+                    self._prompt = self._transport.match.group(0)
+                    logging.debug('Prompt is now: %r', self._prompt)
+                    return
+                else:
+                    # Consume the buffer and go around, since we already
+                    # sent enable.
+                    continue
             else:
                 raise notch.agent.errors.EnableError(
                     'Failed to enable on %r.' % self.name)
 
     def _login(self, username, password):
+        # We only need to manually login for the default method, telnet.
         if self.connect_method == 'telnet' or self.connect_method is None:
             self._transport.write('\n')
             i = self._transport.expect(
@@ -160,14 +176,19 @@ class IosDevice(device.Device):
         self._transport.disconnect()
 
     def _disable_pager(self):
-        logging.debug('Disabling pager')
+        logging.debug('Disabling pager on %r', self.name)
         self._transport.command('terminal length 0', self._prompt)
-        logging.debug('Disabled pager')
+        logging.debug('Disabled pager on %r', self.name)
 
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
         try:
             return self._transport.command(command, self._prompt)
-        except (EOFError, pexpect.EOF), e:
-            raise notch.agent.errors.EOFError(str(e))
+        except (OSError, EOFError, pexpect.EOF), e:
+            if command in ('logout', 'exit'):
+                pass
+            else:
+                exc = notch.agent.errors.CommandError(str(e))
+                exc.retry = True
+                raise exc
