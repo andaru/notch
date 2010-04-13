@@ -56,6 +56,7 @@ class TimosDevice(device.Device):
         self.connect_methods = ('sshv2', )
         self._port = self.DEFAULT_PORT
         self._ssh_client = None
+        self._transport = None
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
