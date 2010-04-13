@@ -415,6 +415,10 @@ class Connection(object):
         return self._send_notch_api_request(
             'devices_matching', request, ('regexp', ))
 
+    def _notch_api_devices_info(self, request):
+        return self._send_notch_api_request(
+            'devices_info', request, ('regexp', ))
+    
     def _setup_agents(self):
         """Sets up the Notch JSON RPC agent connection.
 
@@ -589,6 +593,32 @@ class Connection(object):
                           callback=callback, callback_args=callback_args,
                           callback_kwargs=callback_kwargs)
         r = self.exec_request(request)
+        if request.callback:
+            return
+        else:
+            if isinstance(r.error, Exception):
+                raise r.error
+            else:
+                return r.result
+
+    def devices_info(self, regexp, callback=None, callback_args=None,
+                     callback_kwargs=None):
+        """Query the agent for info on devices matching the regexp.
+
+        Arguments:
+          regexp: A string, the regular expression to use for matching.
+
+        Returns;
+          A dictionary, keyed by device name. Values are dictionaries,
+          containing the 'device_name', 'addresses' and 'device_type'
+          keys.
+        """
+        request = Request('devices_info', {'regexp': regexp},
+                          callback=callback, callback_args=callback_args,
+                          callback_kwargs=callback_kwargs)
+        r = self.exec_request(request)
+        print r
+        print dir(r)
         if request.callback:
             return
         else:
