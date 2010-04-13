@@ -72,6 +72,17 @@ class Session(object):
         """Returns True if the other session manages the same device."""
         return bool(self.device == other.device)
 
+    def __str__(self):
+        if self.device:
+            hostname = self.device.name
+        else:
+            hostname = 'not connected'
+        if self._credential:
+            username = 'Logged in as %s.' % self._credential.username
+        else:
+            username = 'Not logged in.'
+        return '<%s on %s. %s>' % (self.__class__.__name__, hostname, username)
+    
     @property
     def connected(self):
         return self._connected
@@ -100,12 +111,13 @@ class Session(object):
                 pass
 
     def connect(self):
-        """Connects the session using a given Credential."""
+        """Connects the session using the current Credential."""
         if self.device is None:
             return
         elif self._connected:
             return
-        self.device.connect(credential=self._credential)
+        self.device.connect(credential=self._credential,
+                            connect_method=self._credential.connect_method)
         self.time_last_connect = time.time()
         self._connected = True
         self.idle = True
@@ -146,12 +158,19 @@ class Session(object):
                     # May raise any exception.
                     result = device_method(*args, **kwargs)
                 except errors.ApiError, e:
+                    # Single optional retry.
                     if e.disconnect_on_error:
+                        logging.debug(
+                            'Disconnecting session %s (error occured).', self)
                         self.disconnect()
-                    raise e
-                else:
-                    self.time_last_response = time.time()
-                    return result
+                    if not e.retry:
+                        raise e
+                    else:
+                        logging.debug('Retrying request on session %s.', self)
+                        self.connect()
+                        result = device_method(*args, **kwargs)
+                
+                self.time_last_response = time.time()
+                return result
             finally:
                 self.idle = True
-
