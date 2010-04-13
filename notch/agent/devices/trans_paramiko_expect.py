@@ -17,11 +17,13 @@
 """Telnet device transport via telnetlib."""
 
 
+import os
 import re
 
 from eventlet.green import socket
 
 import paramiko
+import pexpect
 
 import notch.agent.errors
 
@@ -49,7 +51,7 @@ class ParamikoExpectTransport(object):
       port: An int, the TCP port to connect to. None uses the default port.
       timeouts: A device.Timeouts namedtuple, timeout values to use.
     """
-    
+
     def __init__(self, address=None, port=None, timeouts=None, **kwargs):
         """Initializer.
 
@@ -92,8 +94,6 @@ class ParamikoExpectTransport(object):
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            print self.port
-
             self._ssh_client.connect(self.address,
                                      port=self.port,
                                      username=credential.username,
@@ -104,11 +104,18 @@ class ParamikoExpectTransport(object):
             if self._c is None:
                 self._c = paramiko_expect.ParamikoSpawn(None)
             self._c.channel = self._ssh_client.invoke_shell()
+        except socket.timeout, e:
+            raise notch.agent.errors.ConnectError('Timed out after %.1fs' %
+                                                  self.timeouts.connect)
         except (paramiko.ssh_exception.SSHException, socket.error), e:
-            if e.args[1] == 'EADDRNOTAVAIL':
-                raise notch.agent.errors.ConnectError(
-                    'Port %s on %r is closed.' % (self.port, self.address))
-            else:
+            try:
+                if e.args[1] == 'EADDRNOTAVAIL':
+                    raise notch.agent.errors.ConnectError(
+                        'Port %s on %r is closed.' % (self.port, self.address))
+                else:
+                    raise notch.agent.errors.ConnectError(str(e))
+            except IndexError, unused_e:
+                # Raise the message from the original exception.
                 raise notch.agent.errors.ConnectError(str(e))
 
     def flush(self):
@@ -154,36 +161,68 @@ class ParamikoExpectTransport(object):
 
     def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
                 command_trailer='\n', expect_command=True):
-        """Executes the command, returning any data prior to the prompt."""
+        """Executes the command.
+
+        This returns any data after the CLI command sent, prior to the
+        CLI prompt after the output ceases.
+        """
         timeout_long = timeout or self.timeouts.resp_long
         timeout_short = timeout or self.timeouts.resp_short
+
+        # Find the prompt and flush the expect buffer.
         self.write(command_trailer)
         if isinstance(prompt, str):
             esc_prompt = re.escape(prompt)
         else:
             esc_prompt = prompt
-        i = self.expect([esc_prompt], timeout_short)
-        if i == - 1:
-            raise notch.agent.errors.CommandError(
-                'Device in an unknown state, cannot continue.')
+        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
+                        timeout_short)
+        if i == 1:
+            exc = notch.agent.errors.CommandError(
+                'EOF received during command %r' % command)
+            exc.retry = True
+            raise exc
+        elif i == 2:
+            raise notch.agent.errors.CommandError('CLI prompt not found prior '
+                                                  'to sending command.')
+
+        # Send the command.
         self.write(command + command_trailer)
 
-        # Expect the command to be echoed back first, perhaps.
-        # If the device echoes back the 'full' command for the
-        # abbreviated command entered, this should be disabled.
+        # Expect the command to be echoed back first, perhaps. If the
+        # device echoes back the 'full' command for an abbreviated
+        # command input (um, thanks), allow for that, also.
         if expect_command:
             i = self.expect(
-                [re.escape(command) + expect_trailer], timeout_short)
+                [re.escape(command) + expect_trailer, pexpect.EOF,
+                 pexpect.TIMEOUT], timeout_short)
         else:
-            i = self.expect([expect_trailer], timeout_short)
-        if i == -1:
-            raise notch.agent.errors.CommandError(
+            trailer = expect_trailer or os.linesep
+            i = self.expect([trailer, pexpect.EOF, pexpect.TIMEOUT],
+                            timeout_short)
+        if i > 0:
+            exc = notch.agent.errors.CommandError(
                 'Device did not start response within short response timeout.')
-        i = self.expect([esc_prompt], timeout_long)
-        if i == -1:
+            exc.retry = True
+            raise exc
+
+        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
+                        timeout_long)
+        if i == 1:
+            exc = notch.agent.errors.CommandError(
+                'EOF received during command %r' % command)
+            exc.retry = True
+            raise exc
+        elif i == 2:
+            # Don't retry timeouts on the whole command - they usually
+            # indicate overloaded devices.
             raise notch.agent.errors.CommandError(
-                'Prompt not found after command %r.' % command)
+                'Command executed, CLI prompt not seen after %.1f sec' %
+                timeout_long)
         else:
+            # Clean up the output to include only the part between the first
+            # character after the newline after the command requested until
+            # the last character prior to the next CLI prompt.
             prompt_index = self._c.before.rfind(prompt)
             if prompt_index == -1:
                 return self._c.before
