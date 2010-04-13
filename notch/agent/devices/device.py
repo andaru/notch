@@ -162,21 +162,7 @@ class Device(object):
 
     def command(self, command, mode=None):
         """Executes a command on the device."""
-        try:
-            return self._command(command, mode=mode)
-        except notch.agent.errors.ApiError, e:
-            if hasattr(e, 'retry') and e.retry:
-                logging.debug('Retrying command %r (device=%s, mode=%s)',
-                              command, self.name, mode)
-                if self._connected:
-                    self.disconnect()
-                # Only retry once.
-                self.connect(credential=self._current_credential,
-                             connect_method=self._connect_method)
-                # This may raise another exception.
-                self._command(command, mode=mode)
-            else:
-                raise e
+        return self._command(command, mode=mode)
 
     def get_config(self, source, mode=None):
         """Gets the configuration of the source in the desired mode."""
