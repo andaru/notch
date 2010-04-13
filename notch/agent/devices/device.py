@@ -161,7 +161,8 @@ class Device(object):
                     self.connect(credential=self._current_credential,
                                  connect_method=self._connect_method)
                 self._command(command, mode=mode)
-                    
+            else:
+                raise
 
     def get_config(self, source, mode=None):
         """Gets the configuration of the source in the desired mode."""

@@ -160,14 +160,19 @@ class IosDevice(device.Device):
         self._transport.disconnect()
 
     def _disable_pager(self):
-        logging.debug('Disabling pager')
+        logging.debug('Disabling pager on %r', self.name)
         self._transport.command('terminal length 0', self._prompt)
-        logging.debug('Disabled pager')
+        logging.debug('Disabled pager on %r', self.name)
 
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
         try:
             return self._transport.command(command, self._prompt)
-        except (EOFError, pexpect.EOF), e:
-            raise notch.agent.errors.EOFError(str(e))
+        except (OSError, EOFError, pexpect.EOF), e:
+            if command in ('logout', 'exit'):
+                pass
+            else:
+                exc = notch.agent.errors.CommandError(str(e))
+                exc.retry = True
+                raise exc

@@ -107,13 +107,10 @@ class TimosDevice(device.Device):
         self._transport.disconnect()
 
     def _disable_pager(self):
-        logging.debug('Disabling pager')
+        logging.debug('Disabling pager on %r', self.name)
         self._transport.command('environment no more', self._prompt,
-                                command_trailer='\r', expect_trailer=''
-
-                                
-                                )
-        logging.debug('Disabled pager')
+                                command_trailer='\r', expect_trailer='')
+        logging.debug('Disabled pager on %r', self.name)
 
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
@@ -123,6 +120,11 @@ class TimosDevice(device.Device):
                                            expect_command=False,
                                            command_trailer='\r',
                                            expect_trailer='[^\r]*\r\n')
-        except (EOFError, pexpect.EOF), e:
-            raise notch.agent.errors.EOFError(str(e))
-
+        except (OSError, EOFError, pexpect.EOF), e:
+            if command != 'logout':
+                exc = notch.agent.errors.CommandError(str(e))
+                exc.retry = True
+                raise exc
+            else:
+                pass
+        

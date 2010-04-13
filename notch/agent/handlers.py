@@ -180,6 +180,7 @@ class NotchAPI(object):
         # TODO(afort): Add specific error codes in errors.py
         logging.error('%s: %s', exc.__class__.__name__, str(exc))
         # We get _RPC_ attribute via mixin.
+        logging.debug(traceback.format_exc())
         return notch.agent.errors.rpc_error_handler(exc, self._RPC_)
 
     def devices_matching(self, **kwargs):

@@ -161,6 +161,8 @@ error_dictionary = {
     'NoSuchVendorError': 7,
     'NoSessionCreatedError': 8,
     'AuthenticationError': 9,
+    'CommandError': 10,
+    'EOFError': 11,
 }
 
 reverse_error_dictionary = dict((v, k) for (k, v) in error_dictionary.items())

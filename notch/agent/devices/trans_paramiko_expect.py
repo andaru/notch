@@ -22,6 +22,7 @@ import re
 from eventlet.green import socket
 
 import paramiko
+import pexpect
 
 import notch.agent.errors
 
@@ -92,8 +93,6 @@ class ParamikoExpectTransport(object):
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            print self.port
-
             self._ssh_client.connect(self.address,
                                      port=self.port,
                                      username=credential.username,
@@ -162,27 +161,39 @@ class ParamikoExpectTransport(object):
             esc_prompt = re.escape(prompt)
         else:
             esc_prompt = prompt
-        i = self.expect([esc_prompt], timeout_short)
-        if i == - 1:
-            raise notch.agent.errors.CommandError(
-                'Device in an unknown state, cannot continue.')
-        self.write(command + command_trailer)
+        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
+                        timeout_short)
+        if i > 0:
+            exc = notch.agent.errors.CommandError(
+                'Device disconnected when checking for prompt before command.')
+            exc.retry = True
+            raise exc
+        else:
+            self.write(command + command_trailer)
 
         # Expect the command to be echoed back first, perhaps.
         # If the device echoes back the 'full' command for the
         # abbreviated command entered, this should be disabled.
         if expect_command:
             i = self.expect(
-                [re.escape(command) + expect_trailer], timeout_short)
+                [re.escape(command) + expect_trailer, pexpect.EOF,
+                 pexpect.TIMEOUT], timeout_short)
         else:
-            i = self.expect([expect_trailer], timeout_short)
-        if i == -1:
-            raise notch.agent.errors.CommandError(
+            i = self.expect([expect_trailer, pexpect.EOF, pexpect.TIMEOUT],
+                            timeout_short)
+        if i > 0:
+            exc = notch.agent.errors.CommandError(
                 'Device did not start response within short response timeout.')
-        i = self.expect([esc_prompt], timeout_long)
-        if i == -1:
-            raise notch.agent.errors.CommandError(
+            exc.retry = True
+            raise exc
+        
+        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
+                        timeout_long)
+        if i > 0:
+            exc = notch.agent.errors.CommandError(
                 'Prompt not found after command %r.' % command)
+            exc.retry = True
+            raise exc
         else:
             prompt_index = self._c.before.rfind(prompt)
             if prompt_index == -1:

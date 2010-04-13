@@ -79,15 +79,14 @@ class JunosDevice(device.Device):
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
-        # TODO(afort): Combine output channels; e.g., for JunOS during
-        # 'traceroute', where some output appears on stderr and some on stdout.
         try:
             stdin, stdout, stderr = self._exec_command(command,
                                                        combine_stderr=True)
-        except paramiko.ssh_exception.SSHException, e:
-            raise notch.agent.errors.CommandError(str(e))
-        except EOFError, e:
-            raise notch.agent.errors.EOFError(str(e))
+        except (paramiko.ssh_exception.SSHException, EOFError), e:
+            # TODO(afort): Catch any SSHExceptions we'd rather not retry on.
+            exc = notch.agent.errors.CommandError(str(e))
+            exc.retry = True
+            raise exc
         else:
             stdin.close()
         try:
