@@ -163,6 +163,7 @@ error_dictionary = {
     'AuthenticationError': 9,
     'CommandError': 10,
     'EOFError': 11,
+    'NoMatchingCredentialError': 12,
 }
 
 reverse_error_dictionary = dict((v, k) for (k, v) in error_dictionary.items())
