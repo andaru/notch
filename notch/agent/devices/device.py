@@ -38,16 +38,17 @@ class Device(object):
       addresses: A list of ipaddr.IP{V4|V6}Address object, the IP address(es).
       connected: A boolean, True if the device is connected to. (RO)
       connect_method: A string, the current connection method to use.
+      connect_methods: A tuple of strings, the currently supported
+        connection methods.
       name: A string, the device (host) name.
       vendor: A string, the device type name (e.g., 'juniper', 'cisco').
     """
     # In concrete classes, set this to the vendor OS identifier.
     vendor = None
 
-    # Values of the attribute connect_method supported by this device.
-    CONNECT_METHODS = tuple()
+    # Default connect method for this device, e.g., 'sshv2' or 'telnet'
+    DEFAULT_CONNECT_METHOD = None
 
-    # connect_method.
     # Timeout values used by session to determine liveness/etc.
     # Override as required in concrete device classes.
     MAX_IDLE_TIME = 1800.0
@@ -60,7 +61,7 @@ class Device(object):
 
     def __init__(self, name=None, addresses=None):
         self._addresses = []
-
+        self.connect_methods = tuple()
         try:
             self._set_addresses(addresses)
         except ipaddr.Error, e:
@@ -80,8 +81,7 @@ class Device(object):
 
     def __eq__(self, other):
         return bool(self._addresses == other._addresses and
-                    self.name == other.name and
-                    self._connect_method == other._connect_method)
+                    self.name == other.name)
 
     def __str__(self):
         return ('%s(name=%r, addresses=%r, connected=%r, connect_method=%r, '
@@ -116,16 +116,25 @@ class Device(object):
         """Connects to the device."""
         if self.addresses is None or self.addresses == []:
             raise notch.agent.errors.DeviceWithoutAddressError(self.name)
-        if (connect_method is not None and
-            connect_method in self.CONNECT_METHODS):
+        # Only change the connect_method if the requested value is valid
+        # on this device. If all else fails, use the device model default.
+        print connect_method
+        print self.connect_methods
+        
+        if connect_method in self.connect_methods:
+            print 'yes'
             self._connect_method = connect_method
+        if self._connect_method is None:
+            self._connect_method = self.DEFAULT_CONNECT_METHOD
         self._current_credential = credential
 
+        logging.debug('Connecting to %s (%s)', self.name, self._connect_method)
         # Try all of the available addresses.
         last_exc = None
         for address in self.addresses:
             try:
-                self._connect(address=address, credential=credential)
+                self._connect(address=address, credential=credential,
+                              connect_method=self._connect_method)
                 success = True
             except notch.agent.errors.ConnectError, e:
                 success = False
@@ -157,12 +166,17 @@ class Device(object):
             return self._command(command, mode=mode)
         except notch.agent.errors.ApiError, e:
             if hasattr(e, 'retry') and e.retry:
-                if not self._connected:
-                    self.connect(credential=self._current_credential,
-                                 connect_method=self._connect_method)
+                logging.debug('Retrying command %r (device=%s, mode=%s)',
+                              command, self.name, mode)
+                if self._connected:
+                    self.disconnect()
+                # Only retry once.
+                self.connect(credential=self._current_credential,
+                             connect_method=self._connect_method)
+                # This may raise another exception.
                 self._command(command, mode=mode)
             else:
-                raise
+                raise e
 
     def get_config(self, source, mode=None):
         """Gets the configuration of the source in the desired mode."""
