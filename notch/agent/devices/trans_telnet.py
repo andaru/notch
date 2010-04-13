@@ -125,6 +125,10 @@ class TelnetDeviceTransport(object):
         except (socket.error, EOFError), e:
             raise notch.agent.errors.CommandError(
                 '%s: %s' % (e.__class__.__name__, str(e)))
+        except OSError, e:
+            exc = notch.agent.errors.CommandError('OSError: %s' % str(e))
+            exc.retry = True
+            raise exc
 
     def expect(self, re_list, timeout=None):
         timeout = timeout or self.timeouts.resp_long
