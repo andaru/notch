@@ -30,14 +30,21 @@ import device
 class JunosDevice(device.Device):
     """Juniper Networks JunOS device model."""
 
+    DEFAULT_CONNECT_METHOD = 'sshv2'
+    DEFAULT_PORT = 22
+
     def __init__(self, name=None, addresses=None):
         super(JunosDevice, self).__init__(name=name, addresses=addresses)
+        self.connect_methods = ('sshv2', )
         self._ssh_client = None
-        self._port = 22
+        self._port = None
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
-        self._port = port or 22
+        # Just ignore the connect method, we only support sshv2.
+        _ = connect_method
+
+        self._port = port or self.DEFAULT_PORT
         if self._ssh_client is not None:
             self._ssh_client.close()
         # Load the private key, if available.
@@ -64,11 +71,13 @@ class JunosDevice(device.Device):
         self._ssh_client.close()
         self._ssh_client == None
 
-    def _exec_command(self, command, bufsize=-1, combine_stderr=False):
+    def _exec_command(self, command, bufsize=-1, combine_stderr=False,
+                      timeout=None):
         transport = self._ssh_client.get_transport()
         channel = transport.open_session()
-
         channel.set_combine_stderr(combine_stderr)
+        timeout = timeout or self.timeouts.resp_long
+        channel.settimeout(timeout)
         channel.exec_command(command)
 
         stdin = channel.makefile('wb', bufsize)
@@ -79,15 +88,14 @@ class JunosDevice(device.Device):
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
         _ = mode
-        # TODO(afort): Combine output channels; e.g., for JunOS during
-        # 'traceroute', where some output appears on stderr and some on stdout.
         try:
             stdin, stdout, stderr = self._exec_command(command,
                                                        combine_stderr=True)
-        except paramiko.ssh_exception.SSHException, e:
-            raise notch.agent.errors.CommandError(str(e))
-        except EOFError, e:
-            raise notch.agent.errors.EOFError(str(e))
+        except (paramiko.ssh_exception.SSHException, EOFError), e:
+            # TODO(afort): Catch any SSHExceptions we'd rather not retry on.
+            exc = notch.agent.errors.CommandError(str(e))
+            exc.retry = True
+            raise exc
         else:
             stdin.close()
         try:
