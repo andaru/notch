@@ -155,21 +155,23 @@ class Session(object):
                 if 'device_name' in kwargs:
                     del kwargs['device_name']
                 try:
-                    # May raise any exception.
+                    # May raise any exception, we'll trigger a retry
+                    # upon API errors with the retry attribute set.
                     result = device_method(*args, **kwargs)
                 except errors.ApiError, e:
-                    # Single optional retry.
+                    # Normally, we'll disconnect upon error just incase.
                     if e.disconnect_on_error:
                         logging.debug(
                             'Disconnecting session %s (error occured).', self)
                         self.disconnect()
-                    if not e.retry:
-                        raise e
-                    else:
+                    # Single optional retry.
+                    if e.retry:
                         logging.debug('Retrying request on session %s.', self)
                         self.connect()
                         result = device_method(*args, **kwargs)
-                
+                    else:
+                        raise e
+
                 self.time_last_response = time.time()
                 return result
             finally:

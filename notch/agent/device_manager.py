@@ -187,7 +187,6 @@ class DeviceManager(object):
     """
 
     # TODO(afort): Set self.serve_ready to false every X minutes to update data.
-
     provider_classes = (RancidDeviceProvider, )
     config_section = 'device_sources'
 

@@ -109,13 +109,16 @@ class Credential(object):
 
     def __repr__(self):
         return ('%s(regexp=%r, username=%r, bool(password)=%r, '
-                'bool(enable_password)=%r, bool(ssh_private_key)=%r)'
+                'bool(enable_password)=%r, bool(ssh_private_key)=%r, '
+                'auto_enable=%r, connect_method=%r)'
                 % (self.__class__.__name__,
                    self.regexp_string,
                    self.username,
                    bool(self.password),
                    bool(self.enable_password),
-                   bool(self.ssh_private_key)))
+                   bool(self.ssh_private_key),
+                   bool(self.auto_enable),
+                   self.connect_method))
 
     def matches(self, hostname):
         """Tests if this Credential matches the hostname.
@@ -159,7 +162,6 @@ class Credentials(object):
             self.load_credentials()
             self.after_load_credentials()
             logging.debug('Loaded %d credentials.', len(self.credentials))
-
 
     def __len__(self):
         return len(self.credentials)
