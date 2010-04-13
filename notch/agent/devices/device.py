@@ -118,11 +118,7 @@ class Device(object):
             raise notch.agent.errors.DeviceWithoutAddressError(self.name)
         # Only change the connect_method if the requested value is valid
         # on this device. If all else fails, use the device model default.
-        print connect_method
-        print self.connect_methods
-        
         if connect_method in self.connect_methods:
-            print 'yes'
             self._connect_method = connect_method
         if self._connect_method is None:
             self._connect_method = self.DEFAULT_CONNECT_METHOD
