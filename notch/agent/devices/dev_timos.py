@@ -30,6 +30,7 @@ import device
 import trans_paramiko_expect
 
 
+CTRL_C = r'\x03'
 CTRL_Z = r'\x16'
 
 
@@ -47,20 +48,20 @@ class TimosDevice(device.Device):
     PROMPT = re.compile(r'\S+\s?[\$#]')
     ERR_NOT_SETUP = 'Password required, but none set'
 
-    CONNECT_METHODS = ('sshv2', )
+    DEFAULT_CONNECT_METHOD = 'sshv2'
+    DEFAULT_PORT = 22
 
     def __init__(self, name=None, addresses=None):
         super(TimosDevice, self).__init__(name=name, addresses=addresses)
-        self._port = 22
+        self.connect_methods = ('sshv2', )
+        self._port = self.DEFAULT_PORT
         self._ssh_client = None
-        self._transport = trans_paramiko_expect.ParamikoExpectTransport(
-            timeouts=self.timeouts)
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
-        
-        self._transport.address = str(address)
-        self._transport.port = port or self._port
+        port = port or self._port
+        self._transport = trans_paramiko_expect.ParamikoExpectTransport(
+            timeouts=self.timeouts, address=str(address), port=port)       
         self._transport.connect(credential)
         self._get_prompt()
         self._disable_pager()
@@ -107,13 +108,10 @@ class TimosDevice(device.Device):
         self._transport.disconnect()
 
     def _disable_pager(self):
-        logging.debug('Disabling pager')
+        logging.debug('Disabling pager on %r', self.name)
         self._transport.command('environment no more', self._prompt,
-                                command_trailer='\r', expect_trailer=''
-
-                                
-                                )
-        logging.debug('Disabled pager')
+                                command_trailer='\r', expect_trailer='')
+        logging.debug('Disabled pager on %r', self.name)
 
     def _command(self, command, mode=None):
         # mode argument is as yet unused. Quieten pylint.
@@ -123,6 +121,11 @@ class TimosDevice(device.Device):
                                            expect_command=False,
                                            command_trailer='\r',
                                            expect_trailer='[^\r]*\r\n')
-        except (EOFError, pexpect.EOF), e:
-            raise notch.agent.errors.EOFError(str(e))
-
+        except (OSError, EOFError, pexpect.EOF), e:
+            if command != 'logout':
+                exc = notch.agent.errors.CommandError(str(e))
+                exc.retry = True
+                raise exc
+            else:
+                pass
+        
