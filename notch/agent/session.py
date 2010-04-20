@@ -87,12 +87,10 @@ class Session(object):
     def connected(self):
         return self._connected
 
-    @property
-    def credential(self):
+    def _credential(self):
         return self._credential
 
-    @credential.setter
-    def credential(self, c):
+    def _set_credential(self, c):
         """Sets the session credential, reconnecting if presently connected."""
         try_to_reconnect = self._connected
         if c != self._credential:
@@ -109,6 +107,8 @@ class Session(object):
             except errors.ConnectError:
                 # If we aren'table to reconnect, it's no great loss.
                 pass
+
+    credential = property(_credential_, _set_credential)
 
     def connect(self):
         """Connects the session using the current Credential."""
@@ -135,7 +135,8 @@ class Session(object):
 
     def request(self, method, *args, **kwargs):
         """Executes a request on this session."""
-        with self._exclusive:
+        self._exclusive.acquire()
+        try:
             # Check the method name is valid.
             if not method in self.valid_requests:
                 raise errors.InvalidRequestError(
@@ -176,3 +177,6 @@ class Session(object):
                 return result
             finally:
                 self.idle = True
+        finally:
+            self._exclusive.release()
+

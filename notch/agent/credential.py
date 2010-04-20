@@ -85,15 +85,15 @@ class Credential(object):
                     self.enable_password == other.enable_password and
                     self._ssh_private_key == other._ssh_private_key)
 
-    @property
-    def ssh_private_key(self):
+    def _ssh_private_key(self):
         return self._ssh_private_key
 
-    @ssh_private_key.setter
-    def ssh_private_key(self, key):
+    def _set_ssh_private_key(self, key):
         self._ssh_private_key = key
         self._fileify_private_key()
 
+    ssh_private_key = property(_ssh_private_key, _set_ssh_private_key)
+    
     @property
     def ssh_private_key_file(self):
         if self._ssh_private_key_file is None:

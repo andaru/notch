@@ -332,12 +332,10 @@ class Connection(object):
     def counters(self):
         return self._counters
 
-    @property
-    def load_balancing_policy(self):
+    def _load_balancing_policy(self):
         return self._load_balancing_policy
 
-    @load_balancing_policy.setter
-    def load_balancing_policy(self, lbp):
+    def _set_load_balancing_policy(self, lbp):
         """Selects the new load balancing policy and activates it."""
         if hasattr(lb_transport, lbp):
             self._lb_policy = getattr(lb_transport, lbp)
@@ -345,7 +343,10 @@ class Connection(object):
             raise NoSuchLoadBalancingPolicyError(
                 'There is no load balancing policy named %r' % lbp)
         self._load_balancing_policy = lbp
-    
+
+    load_balancing_policy = property(_load_balancing_policy,
+                                     _set_load_balancing_policy)
+                                     
     def _request_callback(self, gt, *args, **kwargs):
         """Asynchronously receives responses and runs the user callback.
 

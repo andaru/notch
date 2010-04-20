@@ -138,7 +138,8 @@ class BackendPolicy(object):
         # XXX necessary? test for removal of backends to confirm.
         if backend not in self._backends:
             return
-        with self._lock:
+        self._lock.acquire()
+        try:
             if exc is not None:
                 self.error_requests[backend] += 1
             elif response is not None:
@@ -148,6 +149,8 @@ class BackendPolicy(object):
                 backend.state = ERROR
             start = self._last_request_start[backend]
             self.last_request_rtt[backend] = max(0, time.time() - start)
+        finally:
+            self._lock.release()
         backend.num_rpc_inflight -= 1
 
     backends = property(lambda cls: cls._backends)  
