@@ -29,11 +29,9 @@ from notch.agent.devices import dev_timos
 
 
 VENDOR_MAP = {'cisco': dev_ios.IosDevice,
-              'ios': dev_ios.IosDevice,
-              'junos': dev_junos.JunosDevice,
               'juniper': dev_junos.JunosDevice,
               'timetra': dev_timos.TimosDevice,
-              'timos': dev_timos.TimosDevice,
+              'telco': dev_ios.IosDevice,  # BATM/Telco switch OS
               }
 
 

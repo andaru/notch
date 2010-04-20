@@ -50,10 +50,12 @@ class IosDevice(device.Device):
       telnet (via telnetlib)
     """
 
-    LOGIN_PROMPT = 'Username: '
-    PASSWORD_PROMPT = 'Password: '
-    PROMPT = re.compile(r'\S+\s?[>#]')
+    LOGIN_PROMPT = 'Username:'
+    PASSWORD_PROMPT = 'Password:'
+    PROMPT = re.compile(r'\S+\s?[>\#]')
     ERR_NOT_SETUP = 'Password required, but none set'
+
+    ENABLE_CHAR = '#'
 
     DEFAULT_CONNECT_METHOD = 'sshv2'
 
@@ -99,7 +101,8 @@ class IosDevice(device.Device):
         logging.debug('Enabling on %r' % self.name)
         self._transport.write('\n')
         try:
-            _ = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
+            _ = self._transport.expect([self.PROMPT],
+                                       self.timeouts.resp_short)
         except (pexpect.EOF, pexpect.TIMEOUT), e:
             raise notch.agent.errors.EnableError('Could not find prompt prior '
                                                  'to enabling.')
@@ -123,7 +126,11 @@ class IosDevice(device.Device):
                     'Enable authentication failed.')
             elif i == 3:
                 # Saw the prompt.
-                if sent_password:
+                if (sent_password or
+                    self._transport.match.group(0).endswith(self.ENABLE_CHAR)):
+                    # Short-circuit the "sent password?" check if
+                    # the prompt ends in the enabled prompt word (e.g.,
+                    # the device didn't ask us for a password).
                     logging.debug('Enabled on %s', self.name)
                     # The prompt will change when we enable.
                     self._prompt = self._transport.match.group(0)
