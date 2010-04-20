@@ -40,10 +40,6 @@ class CredentialError(Error):
     """Credential errors."""
 
 
-class NoMatchingCredentialError(CredentialError):
-    """There was nothing in the credentials store matching the hostname."""
-
-
 class MissingFieldError(CredentialError):
     """The credential was missing a required field."""
 
@@ -115,6 +111,10 @@ class InvalidRequestError(ApiError):
 
 class NoAddressesError(ApiError):
     """The device name has no addresses associated with it."""
+
+
+class NoMatchingCredentialError(ApiError, CredentialError):
+    """There was nothing in the credentials store matching the hostname."""
 
     
 class NoSuchDeviceError(ApiError):
