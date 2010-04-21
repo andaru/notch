@@ -16,7 +16,7 @@
 
 """
 The Notch client library
-========================   
+========================
 
 To use the Notch Client, first create a Client instance::
 
@@ -36,7 +36,7 @@ If you have listed your agents in the ``NOTCH_AGENTS`` environment variable,
 you can create a client as simply as::
 
   conn = notch.client.Connection()
- 
+
 Synchronous mode
 ----------------
 
@@ -257,7 +257,7 @@ class Counters(object):
     """
 
     MBYTE = 1048576.0
-    
+
     def __init__(self):
         self.req_total = 0
         self.req_ok = 0
@@ -419,7 +419,7 @@ class Connection(object):
     def _notch_api_devices_info(self, request):
         return self._send_notch_api_request(
             'devices_info', request, ('regexp', ))
-    
+
     def _setup_agents(self):
         """Sets up the Notch JSON RPC agent connection.
 
@@ -482,7 +482,7 @@ class Connection(object):
         else:
             return None
 
-        
+
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
 
@@ -492,8 +492,8 @@ class Connection(object):
         Args:
           request: A NotchRequest to execute.
           callback: None or an async callable called with *args, **kwargs.
-          args: Tuple of arguments for the user callback.
-          kwargs: Dict of keyword arguments for the user callback.
+          args: Tuple of arguments for the user callback. Optional.
+          kwargs: Dict of keyword arguments for the user callback. Optional.
 
         Returns:
           The updated request object in synchronous mode, or None in async mode.
@@ -514,22 +514,24 @@ class Connection(object):
         Callback, args and kwargs aruments passed will override those
         on every request in the requests iterable.
 
-        Args:
+        Only works in asynchronous mode, i.e., you must supply a callback
+        or all requests must already have one set.
 
+        Args:
           requests: NotchRequests to execute.
-          callback: None or an async callable called with *args, **kwargs.
-          args: Tuple of arguments for the user callback.
-          kwargs: Dict of keyword arguments for the user callback.
+          callback: If not on request, an async callable called with
+            *args, **kwargs.
+          args: Tuple of arguments for the user callback. Optional.
+          kwargs: Dict of keyword arguments for the user callback. Optional.
         """
         for request in requests:
             if callback: request.callback = callback
             if args: request.callback_args = args
             if kwargs: request.callback_kwargs = kwargs
-        return self._exec_requests(
-            requests, callback=callback, args=args, kwargs=kwargs)
+        return self._exec_requests(requests)
 
     def kill_all(self):
-        """Kills all outstanding requests.""" 
+        """Kills all outstanding requests."""
         for gt in self._pool.coroutines_running.copy():
             gt.kill(RequestCancelledError)
 
@@ -618,8 +620,6 @@ class Connection(object):
                           callback=callback, callback_args=callback_args,
                           callback_kwargs=callback_kwargs)
         r = self.exec_request(request)
-        print r
-        print dir(r)
         if request.callback:
             return
         else:
