@@ -108,7 +108,7 @@ class Session(object):
                 # If we aren'table to reconnect, it's no great loss.
                 pass
 
-    credential = property(_credential_, _set_credential)
+    credential = property(_credential, _set_credential)
 
     def connect(self):
         """Connects the session using the current Credential."""
