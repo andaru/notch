@@ -142,6 +142,12 @@ class RancidDeviceProvider(DeviceProvider):
                     # Anything other than up is down, so skip the device.
                     if not 'up' in status:
                         continue
+                if device_type not in device_factory.VENDOR_MAP.keys():
+                    logging.error('Invalid device type %r in router.db line: '
+                                  '%r', device_type, line.replace('\n', ''))
+                    logging.error('Device skipped. Valid device types are: %s',
+                                  ', '.join(device_factory.VENDOR_MAP.keys()))
+                    
                 try:
                     addresses = self.address_lookup(device_name)
                 except socket.gaierror:
