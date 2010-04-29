@@ -59,6 +59,10 @@ class Device(object):
     TIMEOUT_RESP_LONG = 180.0  # e.g., Full configs over a hosed 2meg link.
     TIMEOUT_DISCONNECT = 15.0
 
+    # errno 113: No route to host.
+    # errno 101: Network is unreachable.
+    DONT_RETRY_ERRNO = (101, 113, )
+
     def __init__(self, name=None, addresses=None):
         self._addresses = []
         self.connect_methods = tuple()
@@ -132,6 +136,14 @@ class Device(object):
                 self._connect(address=address, credential=credential,
                               connect_method=self._connect_method)
                 success = True
+            except OSError, e:
+                success = False
+                # Don't retry certain errors: futility is not a strategy.
+                last_exc = notch.agent.errors.ConnectError(str(e))
+                if hasattr(e, 'errno') and e.errno not in self.DONT_RETRY_ERRNO:
+                    last_exc.retry = True
+                logging.error('Connect failed to %s on %s: [%s] %s',
+                              self.name, address, e.__class__.__name__, str(e))
             except notch.agent.errors.ConnectError, e:
                 success = False
                 last_exc = e
