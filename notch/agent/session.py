@@ -27,7 +27,7 @@ keeping devices connected until idle timers expire.
 
 import collections
 import logging
-import threading
+from eventlet.green import threading
 import time
 
 import errors
@@ -74,14 +74,16 @@ class Session(object):
 
     def __str__(self):
         if self.device:
-            hostname = self.device.name
+            hostname = 'on %s' % self.device.name
         else:
-            hostname = 'not connected'
+            hostname = '(not connected)'
+
         if self._credential:
-            username = 'Logged in as %s.' % self._credential.username
+            username = ' username=%s' % self._credential.username
         else:
-            username = 'Not logged in.'
-        return '<%s on %s. %s>' % (self.__class__.__name__, hostname, username)
+            username = ''
+
+        return '<%s %s%s>' % (self.__class__.__name__, hostname, username)
     
     @property
     def connected(self):
