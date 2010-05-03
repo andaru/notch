@@ -56,7 +56,6 @@ class ParamikoSpawn(pexpect.spawn):
 
         r, w, e = select.select([self.child_fd], [], [], timeout)
         if not r:
-            print ('Timeout (%s) exceeded in read().' % str(timeout))
             raise pexpect.TIMEOUT('Timeout (%s) exceeded in read().' %
                                   str(timeout))
 
