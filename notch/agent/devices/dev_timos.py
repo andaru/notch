@@ -45,7 +45,7 @@ class TimosDevice(device.Device):
       sshv2 (via Paramiko in interactive mode with pexpect)
     """
 
-    PROMPT = re.compile(r'\S+\s?[\$#]')
+    PROMPT = re.compile(r'\*?[AB]\:([^\$#]+)[\$#]')
     ERR_NOT_SETUP = 'Password required, but none set'
 
     DEFAULT_CONNECT_METHOD = 'sshv2'
@@ -64,33 +64,41 @@ class TimosDevice(device.Device):
         self._transport = trans_paramiko_expect.ParamikoExpectTransport(
             timeouts=self.timeouts, address=str(address), port=port)       
         self._transport.connect(credential)
-        self._get_prompt()
+        self._get_prompt(password=credential.password)
         self._disable_pager()
 #        if credential.enable_password:
 #            self._enable(credential.enable_password)
 
-    def _get_prompt(self):
-        self._transport.write('\n')
-        i = self._transport.expect([self.PROMPT], 10)
-        if i == 0:
-            self._prompt = self._transport.match.group(0)
-            logging.debug('Expected prompt is now: %r', self._prompt)
-            return
-        else:
-            logging.error('Failed to get prompt on %s', self.name)
+    def _get_prompt(self, password=None):
+        # Sometimes we get prompted for a password, here.
+        while True:
+            i = self._transport.expect([self.PROMPT,
+                                        '[Pp]assword:',
+                                        pexpect.EOF],
+                                       self.timeouts.resp_short)
+            if i == 0:
+                self._prompt = self._transport.match.group(0)
+                logging.debug('Expected prompt is now: %r', self._prompt)
+                return
+            elif i == 1:
+                self._transport.write(password + '\n')
+                continue               
+            elif i == 2:
+                e = notch.agent.errors.ConnectError(
+                    'Device %s closed connection after login (locked out)'
+                    % self.name)
+                e.retry = False
+                raise e
 
     def _enable(self, enable_password):
         self._transport.write('enable\n')
         while True:
-
             i = self._transport.expect([self.PROMPT,
-                                        r'Password: ',
+                                        r'[Pp]assword:',
                                         r'timeout expired',
                                         r'% Bad secrets',
                                         ], 10)
-            if i == -1:
-                raise EnableFailedError(self._transport.before)
-            elif i == 0:
+            if i == 0:
                 logging.debug('Enabled on %s', self.name)
                 # The prompt will change when we enable.
                 self._prompt = self._transport.match.group(0)
