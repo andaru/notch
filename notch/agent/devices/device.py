@@ -71,11 +71,7 @@ class Device(object):
         self.connect_methods = tuple()
         try:
             self._set_addresses(addresses)
-        # In ipaddr 2 they went to using ValueError, but we should support
-        # the exceptions of earlier versions also (which are still in its
-        # object to avoid AttributeError).
-        except (ValueError, ipaddr.AddressValueError,
-                ipaddr.NetmaskValueError), e:
+        except (ValueError, ipaddr.Error), e:
             logging.error('Error parsing addresses %s: %s',
                           addresses, str(e))
             self._addresses = []

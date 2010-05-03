@@ -34,7 +34,7 @@ class ParamikoDevice(device.Device):
     DEFAULT_PORT = 22
 
     def __init__(self, name=None, addresses=None):
-        super(JunosDevice, self).__init__(name=name, addresses=addresses)
+        super(ParamikoDevice, self).__init__(name=name, addresses=addresses)
         self.connect_methods = ('sshv2', )
         self._ssh_client = None
         self._port = None

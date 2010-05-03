@@ -26,7 +26,7 @@ setuptools.setup(
             ]
         },
     install_requires=['eventlet >= 0.9.6',
-                      'ipaddr',
+                      'ipaddr >= 2.0.0',
                       'mox',
                       'paramiko >= 1.7.6',
                       'PyYAML >= 3.0',
