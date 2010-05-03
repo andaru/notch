@@ -53,11 +53,11 @@ class Device(object):
 
     # Timeout values used by session to determine liveness/etc.
     # Override as required in concrete device classes.
-    MAX_IDLE_TIME = 1800.0
+    MAX_IDLE_TIME = 900.0
 
     # Timeout values for various stages of the connection lifecycle.
     TIMEOUT_CONNECT = 30.0
-    TIMEOUT_RESP_SHORT = 4.0  # e.g., Prompts/menus.
+    TIMEOUT_RESP_SHORT = 8.0  # e.g., Prompts/menus.
     TIMEOUT_RESP_LONG = 180.0  # e.g., Full configs over a hosed 2meg link.
     TIMEOUT_DISCONNECT = 15.0
 
