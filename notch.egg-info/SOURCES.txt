@@ -34,6 +34,7 @@ notch/agent/devices/dev_binos.py
 notch/agent/devices/dev_ios.py
 notch/agent/devices/dev_junos.py
 notch/agent/devices/dev_nos.py
+notch/agent/devices/dev_paramiko.py
 notch/agent/devices/dev_timos.py
 notch/agent/devices/device.py
 notch/agent/devices/paramiko_expect.py
