@@ -22,6 +22,7 @@ JunOS), and must match the vendor string for devices in the configuration
 (e.g., DNS TXT records or router.db files).
 """
 
+from notch.agent.devices import dev_adva_fsp
 from notch.agent.devices import dev_binos
 from notch.agent.devices import dev_ios
 from notch.agent.devices import dev_junos
@@ -29,7 +30,8 @@ from notch.agent.devices import dev_nos
 from notch.agent.devices import dev_timos
 
 
-VENDOR_MAP = {'cisco': dev_ios.IosDevice,
+VENDOR_MAP = {'adva_fsp': dev_adva_fsp.FspDevice,
+              'cisco': dev_ios.IosDevice,
               'juniper': dev_junos.JunosDevice,
               'nos': dev_nos.NosDevice,
               'timetra': dev_timos.TimosDevice,

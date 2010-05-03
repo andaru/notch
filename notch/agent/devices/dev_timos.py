@@ -66,8 +66,9 @@ class TimosDevice(device.Device):
         self._transport.connect(credential)
         self._get_prompt(password=credential.password)
         self._disable_pager()
-#        if credential.enable_password:
-#            self._enable(credential.enable_password)
+        # TODO(afort): Handle enabling.
+        # if credential.enable_password:
+        #     self._enable(credential.enable_password)
 
     def _get_prompt(self, password=None):
         # Sometimes we get prompted for a password, here.

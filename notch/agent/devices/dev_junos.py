@@ -39,8 +39,18 @@ class JunosDevice(device.Device):
         self._ssh_client = None
         self._port = None
 
+    def _reconnect(self):
+        self._connect(address=self.__address,
+                      port=self.__port,
+                      connect_method=self.__connect_method,
+                      credential=self._credential)
+
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
+        self.__address = address
+        self.__port = port
+        self.__connect_method = connect_method
+        self.__credential = credential
         # Just ignore the connect method, we only support sshv2.
         _ = connect_method
 
@@ -74,6 +84,10 @@ class JunosDevice(device.Device):
     def _exec_command(self, command, bufsize=-1, combine_stderr=False,
                       timeout=None):
         transport = self._ssh_client.get_transport()
+        if transport is None:
+            self._reconnect()
+        elif transport is not None and not transport.is_active():
+            self._reconnect()
         channel = transport.open_session()
         channel.set_combine_stderr(combine_stderr)
         timeout = timeout or self.timeouts.resp_long
