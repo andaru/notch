@@ -205,7 +205,7 @@ class Controller(object):
           in error), or a string being the method response.
         """
         logging.debug(
-            'Request: %s(%s)' % (
+            'REQUEST %s(%s)' % (
                 method, ', '.join(['%s=%r' % (k,
                                               v) for k, v in sorted(
                             kwargs.iteritems())])))
