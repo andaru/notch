@@ -1,6 +1,6 @@
-import junos.JunosDevice
+import dev_junos
 
 
-class FspDevice(junos.JunosDevice):
+class FspDevice(dev_junos.JunosDevice):
     """An Adva FSP device model."""
     
