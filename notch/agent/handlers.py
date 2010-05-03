@@ -178,11 +178,13 @@ class NotchAPI(object):
 
     def handle_exception(self, exc):
         # We get _RPC_ attribute via mixin.
-        logging.debug(traceback.format_exc())
+        if not isinstance(exc, notch.agent.errors.ApiError):
+            logging.debug(traceback.format_exc())
         return notch.agent.errors.rpc_error_handler(exc, self._RPC_)
 
     def devices_matching(self, **kwargs):
         try:
+            logging.debug('REQUEST devices_matching %r', kwargs)
             if not kwargs:
                 return
             else:
@@ -194,6 +196,7 @@ class NotchAPI(object):
 
     def devices_info(self, **kwargs):
         try:
+            logging.debug('REQUEST devices_info %r', kwargs)
             if not kwargs:
                 return
             else:
@@ -214,54 +217,63 @@ class NotchAPI(object):
 
     def command(self, **kwargs):
         try:
+            logging.debug('REQUEST command %r', kwargs)
             return self.controller.request('command', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def get_config(self, **kwargs):
         try:
+            logging.debug('REQUEST get_config %r', kwargs)
             return self.controller.request('get_config', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def set_config(self, **kwargs):
         try:
+            logging.debug('REQUEST set_config %r', kwargs)
             return self.controller.request('set_config', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def copy_file(self, **kwargs):
         try:
+            logging.debug('REQUEST copy_file %r', kwargs)
             return self.controller.request('copy_file', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def upload_file(self, **kwargs):
         try:
+            logging.debug('REQUEST upload_file %r', kwargs)
             return self.controller.request('upload_file', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def download_file(self, **kwargs):
         try:
+            logging.debug('REQUEST download_file %r', kwargs)
             return self.controller.request('download_file', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def delete_file(self, **kwargs):
         try:
+            logging.debug('REQUEST delete_file %r', kwargs)
             return self.controller.request('delete_file', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def lock(self, **kwargs):
         try:
+            logging.debug('REQUEST lock %r', kwargs)
             return self.controller.request('lock', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 
     def unlock(self, **kwargs):
         try:
+            logging.debug('REQUEST unlock %r', kwargs)
             return self.controller.request('unlock', **kwargs)
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
