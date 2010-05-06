@@ -27,7 +27,7 @@ import logging
 import pprint
 import sys
 import thread
-import threading
+from eventlet.green import threading
 import time
 import traceback
 

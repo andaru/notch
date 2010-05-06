@@ -20,10 +20,9 @@ A very simple execute only thread pool for background execution of
 Notch RPC handlers in the Tornado webserver.
 """
 
-
 import logging
 import Queue
-import threading
+from eventlet.green import threading
 import time
 import traceback
 

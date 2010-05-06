@@ -16,11 +16,6 @@
 
 """Exceptions, error handlers and counters."""
 
-import threading
-
-# Mutex used to protect counters.
-mu = threading.Lock()
-
 
 # Error classes.
 
