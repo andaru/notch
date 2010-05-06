@@ -24,12 +24,17 @@ import cgi
 import functools
 import inspect
 import logging
+import os
 import pprint
 import sys
 import thread
 from eventlet.green import threading
 import time
 import traceback
+
+os.environ['EVENTLET_THREADPOOL_SIZE'] = '128'
+
+import eventlet.tpool
 
 import jsonrpclib
 # Disable automatic class translation.
@@ -42,16 +47,16 @@ import tornadorpc.json
 import tornadorpc.base
 
 import notch.agent.errors
-import tp
 
+#import tp
 
-tornado.options.define('threadpool_num_threads', default=64,
-                       help='Number of threads to use in sync task threadpool.',
-                       type=int)
+#tornado.options.define('threadpool_num_threads', default=64,
+#                       help='Number of threads to use in sync task threadpool.',
+#                       type=int)
 
 
 # A threadpool used for synchronous tasks.
-_tp = tp.ThreadPool(tornado.options.options.threadpool_num_threads)
+#_tp = tp.ThreadPool(tornado.options.options.threadpool_num_threads)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -143,6 +148,7 @@ class ThreadsHandler(BaseHandler):
 
 class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
+    
 
     def _execute_rpc(self, request_body):
         """Executes the RPC and sets the RPC response."""
@@ -156,7 +162,8 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
         """Multi-threaded JSON-RPC POST handler."""
         self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
         self.controller = self.settings['controller']
-        _tp.put(self._execute_rpc, self.request.body)
+        eventlet.tpool.execute(self._execute_rpc, self.request.body)
+        #_tp.put(self._execute_rpc, self.request.body)
 
 
 class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
