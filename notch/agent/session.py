@@ -27,7 +27,7 @@ keeping devices connected until idle timers expire.
 
 import collections
 import logging
-from eventlet.green import threading
+import threading
 import time
 
 import errors
@@ -48,7 +48,7 @@ class Session(object):
 
     def __init__(self, device=None):
         # TODO(afort): Allow devices to have multiple authentication
-        # methods available (e.g., during password changes).
+        # credentials available (e.g., during password changes).
         self._exclusive = threading.Lock()
 
         self.device = device
