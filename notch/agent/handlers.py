@@ -32,7 +32,9 @@ from eventlet.green import threading
 import time
 import traceback
 
-os.environ['EVENTLET_THREADPOOL_SIZE'] = '128'
+# This needs to be done prior to importing eventlet.tpool
+if not os.environ.get('EVENTLET_THREADPOOL_SIZE'):
+    os.environ['EVENTLET_THREADPOOL_SIZE'] = '128'
 
 import eventlet.tpool
 
@@ -161,9 +163,27 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     def post(self):
         """Multi-threaded JSON-RPC POST handler."""
         self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
+        try:
+            body = jsonrpclib.loads(self.request.body)
+        except:
+            return
+        rpc_id = body.get('id')
+        method = body.get('method')
+        kwargs = body.get('params')
+        logging.debug(
+            'REQUEST %s(%s) [rpcid=%s]' % (
+                method,
+                ', '.join(['%s=%r' %
+                           (k, v) for k, v in sorted(
+                            kwargs.iteritems())]),
+                rpc_id))
         self.controller = self.settings['controller']
         eventlet.tpool.execute(self._execute_rpc, self.request.body)
-        #_tp.put(self._execute_rpc, self.request.body)
+        logging.debug(
+            'REQUEST_DONE %s(%s) [rpcid=%s] [%d bytes]' % (
+                method, ', '.join(['%s=%r' %
+                                   (k, v) for k, v in sorted(
+                            kwargs.iteritems())]), rpc_id, len(response_data)))
 
 
 class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
@@ -172,10 +192,29 @@ class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
     def post(self):
         """Single-threaded JSON-RPC POST handler."""
         self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
+        try:
+            body = jsonrpclib.loads(self.request.body)
+        except:
+            return
+        rpc_id = body.get('id')
+        method = body.get('method')
+        kwargs = body.get('params')
+        logging.debug(
+            'REQUEST %s(%s) [rpcid=%s]' % (
+                method,
+                ', '.join(['%s=%r' %
+                           (k, v) for k, v in sorted(
+                            kwargs.iteritems())]),
+                rpc_id))
         self.controller = self.settings['controller']
         response_data = self._RPC_.run(self, self.request.body)
         self.set_header('Content-Type', self._RPC_.content_type)
         self.write(response_data)
+        logging.debug(
+            'REQUEST_DONE %s(%s) [rpcid=%s] [%d bytes]' % (
+                method, ', '.join(['%s=%r' %
+                                   (k, v) for k, v in sorted(
+                            kwargs.iteritems())]), rpc_id, len(response_data)))
         self.finish()
 
 
@@ -191,7 +230,6 @@ class NotchAPI(object):
 
     def devices_matching(self, **kwargs):
         try:
-            logging.debug('REQUEST devices_matching(%r)', kwargs)
             if not kwargs:
                 return
             else:
@@ -203,7 +241,6 @@ class NotchAPI(object):
 
     def devices_info(self, **kwargs):
         try:
-            logging.debug('REQUEST devices_info(%r)', kwargs)
             if not kwargs:
                 return
             else:
@@ -284,7 +321,6 @@ class NotchAsyncJsonRpcHandler(NotchAPI, AsynchronousJSONRPCHandler):
 
 class NotchSyncJsonRpcHandler(NotchAPI, SynchronousJSONRPCHandler):
     """The Notch API as presented to JSON-RPC asynchronously, for WSGI."""
-
 
 
 class StopHandler(tornado.web.RequestHandler):

@@ -204,13 +204,7 @@ class Controller(object):
           Either an errors.Error subclass instance (when the request ends
           in error), or a string being the method response.
         """
-        logging.debug(
-            'REQUEST %s(%s)' % (
-                method, ', '.join(['%s=%r' % (k,
-                                              v) for k, v in sorted(
-                            kwargs.iteritems())])))
         session = self.get_session(**kwargs)
-
         if session is None:
             raise notch.agent.errors.NoSessionCreatedError(
                 'No session available for request arguments %r' % kwargs)

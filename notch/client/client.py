@@ -256,6 +256,7 @@ class Counters(object):
     concurrency, which provides method level synchronisation.
     """
 
+    # One megabyte in bytes.
     MBYTE = 1048576.0
 
     def __init__(self):
@@ -486,7 +487,6 @@ class Connection(object):
             return results
         else:
             return None
-
 
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
