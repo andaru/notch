@@ -15,7 +15,8 @@
 
 """Notch device model for devices running NOS.
 
-NOS is a CLI/Operating System operating on OLT/ONU equipment.
+NOS is a generalised Network Operating System and CLI operating on things
+like DASAN GPON equipment.
 """
 
 
@@ -25,7 +26,8 @@ import dev_ios
 class NosDevice(dev_ios.IosDevice):
     """A NOS device.
 
-    Similar to IOS devices except for some differences in prompt handling.
+    Almost identical to IOS devices, except for some differences in
+    prompt handling.
     """
 
     LOGIN_PROMPT = ' login: '

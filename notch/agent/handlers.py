@@ -249,6 +249,8 @@ class NotchAPI(object):
                 devices = self.controller.device_manager.devices_matching(arg)
                 for d in devices:
                     dev_info = self.controller.device_manager.device_info(d)
+                    if dev_info is None:
+                        continue
                     if isinstance(dev_info.addresses, list):
                         add = dev_info.addresses
                     else:

@@ -110,16 +110,19 @@ class IosDevice(device.Device):
         self._transport.write('enable\n')
         sent_password = False
         while True:
-            i = self._transport.expect([r'Password:',
+            i = self._transport.expect([r'[Pp]assword:',
                                         r'timeout expired',
                                         r'% Bad secrets',
                                         self.PROMPT,
                                         pexpect.TIMEOUT,
                                         pexpect.EOF,
-                                        ], 10)
+                                        ], self.timeouts.resp_short)
             if i == 0 or i == 1:
-                self._transport.write(enable_password + '\n')
-                sent_password = True
+                if i == 1:
+                    logging.debug('Timed out after sending "enable" command.')
+                else:
+                    self._transport.write(enable_password + '\n')
+                    sent_password = True
                 continue
             elif i == 2:
                 raise notch.agent.errors.AuthenticationError(
@@ -180,7 +183,13 @@ class IosDevice(device.Device):
                             'Password not accepted on %r.' % self.name)
  
     def _disconnect(self):
-        self._transport.disconnect()
+        self._transport.write('exit\n')
+        try:
+            _ = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
+        except (OSError, EOFError, pexpect.EOF):
+            return
+        else:
+            self._transport.disconnect()
 
     def _disable_pager(self):
         logging.debug('Disabling pager on %r', self.name)

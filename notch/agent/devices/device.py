@@ -56,14 +56,16 @@ class Device(object):
     MAX_IDLE_TIME = 900.0
 
     # Timeout values for various stages of the connection lifecycle.
-    TIMEOUT_CONNECT = 30.0
-    TIMEOUT_RESP_SHORT = 8.0  # e.g., Prompts/menus.
+    TIMEOUT_CONNECT = 25.0  # Initial connection.
+    TIMEOUT_RESP_SHORT = 12.0  # e.g., Prompts/menus.
     TIMEOUT_RESP_LONG = 180.0  # e.g., Full configs over a hosed 2meg link.
-    TIMEOUT_DISCONNECT = 15.0
-
-    # errno 101: Network is unreachable.
-    # errno 111: Connection refused.
-    # errno 113: No route to host.
+    TIMEOUT_DISCONNECT = 10.0
+    
+    # Devices will not attempt reconnection after experiencing these errors.
+    # socket.error:
+    #   errno 101: Network is unreachable.
+    #   errno 111: Connection refused.
+    #   errno 113: No route to host.
     DONT_RETRY_ERRNO = (101, 111, 113, )
 
     def __init__(self, name=None, addresses=None):
