@@ -180,10 +180,10 @@ class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
         self.controller = self.settings['controller']
         eventlet.tpool.execute(self._execute_rpc, self.request.body)
         logging.debug(
-            'REQUEST_DONE %s(%s) [rpcid=%s] [%d bytes]' % (
+            'REQUEST_DONE %s(%s) [rpcid=%s]' % (
                 method, ', '.join(['%s=%r' %
                                    (k, v) for k, v in sorted(
-                            kwargs.iteritems())]), rpc_id, len(response_data)))
+                            kwargs.iteritems())]), rpc_id))
 
 
 class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
