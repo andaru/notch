@@ -30,6 +30,8 @@ class NosDevice(dev_ios.IosDevice):
     prompt handling.
     """
 
+    MAX_IDLE_TIME = 300.0
+    
     LOGIN_PROMPT = ' login: '
     PASSWORD_PROMPT = 'Password: '
     
