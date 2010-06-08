@@ -34,6 +34,10 @@ class ParamikoSpawn(pexpect.spawn):
 
     channel = property(lambda x: x.child_fd, _set_channel)
 
+    @property
+    def transport(self):
+        return self.child_fd.get_transport()
+
     def isalive(self):
         try:
             return self.child_fd.get_transport().is_active()

@@ -35,9 +35,11 @@ notch/agent/devices/dev_ios.py
 notch/agent/devices/dev_junos.py
 notch/agent/devices/dev_nos.py
 notch/agent/devices/dev_paramiko.py
+notch/agent/devices/dev_screenos.py
 notch/agent/devices/dev_timos.py
 notch/agent/devices/device.py
 notch/agent/devices/paramiko_expect.py
+notch/agent/devices/scp.py
 notch/agent/devices/trans_paramiko_expect.py
 notch/agent/devices/trans_telnet.py
 notch/agent/templates/base.html

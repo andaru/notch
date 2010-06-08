@@ -149,7 +149,7 @@ class IosDevice(device.Device):
 
     def _login(self, username, password):
         # We only need to manually login for the default method, telnet.
-        if self.connect_method == 'telnet' or self.connect_method is None:
+        if self.connect_method == 'telnet':
             self._transport.write('\n')
             i = self._transport.expect(
                 [self.LOGIN_PROMPT, self.ERR_NOT_SETUP, pexpect.TIMEOUT,

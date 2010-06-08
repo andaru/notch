@@ -28,6 +28,7 @@ import pexpect
 import notch.agent.errors
 
 import paramiko_expect
+import scp
 
 
 # Constants
@@ -228,3 +229,12 @@ class ParamikoExpectTransport(object):
                 return self._c.before
             else:
                 return self._c.before[:prompt_index]
+
+    def download_and_return_file(self, source):
+        try:
+            scp_client = scp.ScpClient(self._c.transport)
+            local_file = tempfile.TemporaryFile()
+            scp_client.get(source, local_file)
+        except Exception:
+            raise notch.agent.errors.DownloadFile
+        return local_file.read()

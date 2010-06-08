@@ -74,7 +74,11 @@ class CommandError(ApiError):
     """There was an error whilst executing a command on a device."""
     disconnect_on_error = True
 
+    
+class DownloadError(ApiError):
+    """There was an error whilst downloading a file from the device."""
 
+    
 class DeviceWithoutAddressError(ApiError):
     """The device does not have an IP address."""
 
@@ -124,6 +128,10 @@ class NoSessionCreatedError(ApiError):
     """No session could be created for the requested arguments."""
 
 
+class UploadError(ApiError):
+    """There was an error whilst uploading a file from the device."""
+
+
 def rpc_error_handler(exc, rpc):
     """Handles an RPC error.
 
@@ -159,6 +167,8 @@ error_dictionary = {
     'CommandError': 10,
     'EOFError': 11,
     'NoMatchingCredentialError': 12,
+    'DownloadError': 13,
+    'UploadError': 14,
 }
 
 reverse_error_dictionary = dict((v, k) for (k, v) in error_dictionary.items())
