@@ -29,6 +29,7 @@ setuptools.setup(
                       'ipaddr >= 2.0.0',
                       'mox',
                       'paramiko >= 1.7.6',
+                      'pexpect',
                       'PyYAML >= 3.0',
                       ],
     url='http://code.google.com/p/notch/',
