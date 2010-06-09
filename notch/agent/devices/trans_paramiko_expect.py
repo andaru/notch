@@ -145,7 +145,7 @@ class ParamikoExpectTransport(object):
            except Exception, e:
                 logging.error('Transport close error: %s: %s',
                               e.__class__.__name__, str(e))
-               pass
+                pass
        finally:
            return result
 
