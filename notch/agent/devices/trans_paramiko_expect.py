@@ -116,6 +116,8 @@ class ParamikoExpectTransport(object):
                 else:
                     raise notch.agent.errors.ConnectError(str(e))
             except IndexError, unused_e:
+                self.disconnect()
+                self._ssh_client = None
                 # Raise the message from the original exception.
                 raise notch.agent.errors.ConnectError(str(e))
 
@@ -139,14 +141,13 @@ class ParamikoExpectTransport(object):
        try:
            try:
                result = self.flush()
-           except EOFError:
+               self._close()
+           except Exception, e:
+                logging.error('Transport close error: %s: %s',
+                              e.__class__.__name__, str(e))
                pass
        finally:
-           try:
-               self._close()
-               return result
-           except EOFError:
-               pass
+           return result
 
     def write(self, s):
         try:
