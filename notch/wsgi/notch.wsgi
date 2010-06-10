@@ -33,6 +33,9 @@ import notch.agent.applications
 import notch.agent.utils
 
 
+__all__ = ['application']
+
+
 # Shall we enable the extra logging?
 ENABLE_EXTRA_LOGS = True
 
@@ -65,19 +68,10 @@ class NoConfigError(Exception):
     pass
 
 
-
-if __name__ != '__main__':
-    if not notch_config_path:
-        msg = ('The Notch WSGI application requires the NOTCH_CONFIG\n'
-               'environment variable to have the path to your config file.\n'
-               'Example:\n'
-               '  $ export NOTCH_CONFIG=/usr/local/etc/notch/notch.yaml')
-        print >>sys.stderr, msg
-        raise SystemExit(1)
-
-# Configuration loaded from 
+# Configuration loaded from Notch YAML configuration file.
 _configuration = notch.agent.utils.load_config(NOTCH_CONFIG_PATH)
 # WSGI application object.
 application = notch.agent.applications.NotchWSGIApplication(
     _configuration)
-__all__ = ['application']
+
+
