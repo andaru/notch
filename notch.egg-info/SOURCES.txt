@@ -59,6 +59,7 @@ notch/docs/source/introduction.rst
 notch/docs/source/rancid_quickstart.rst
 notch/examples/loadtest.py
 notch/examples/mrcli.py
+notch/wsgi/notch.wsgi
 tests/__init__.py
 tests/client_test.py
 tests/controller_test.py

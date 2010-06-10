@@ -133,14 +133,18 @@ class Device(object):
             self._connect_method = self.DEFAULT_CONNECT_METHOD
         self._current_credential = credential
 
-        logging.debug('Connecting to %s (%s)', self.name, self._connect_method)
+        logging.debug('CONNECT %s %s', self.name, self._connect_method)
         # Try all of the available addresses.
         last_exc = None
+        success = False
         for address in self.addresses:
             try:
                 self._connect(address=address, credential=credential,
                               connect_method=self._connect_method)
                 success = True
+                logging.debug('CONNECT_OK %s %s @ %s',
+                              self.name, self._connect_method, address)
+                break
             except (EOFError, pexpect.EOF, pexpect.TIMEOUT, OSError), e:
                 success = False
                 # Don't retry certain errors: futility is not a strategy.
@@ -149,13 +153,15 @@ class Device(object):
                     last_exc.retry = True
                 elif isinstance(e, pexpect.EOF):
                     last_exc.retry = True
-                logging.error('Connect failed to %s on %s: [%s] %s',
-                              self.name, address, e.__class__.__name__, str(e))
+                logging.error('CONNECT_FAIL %s %s @ %s: [%s] %s',
+                              self.name, self._connect_method, address, 
+                              e.__class__.__name__, str(e))
             except notch.agent.errors.ConnectError, e:
                 success = False
                 last_exc = e
-                logging.error('Connect failed to %s on %s: [%s] %s',
-                              self.name, address, e.__class__.__name__, str(e))
+                logging.error('CONNECT_FAIL %s %s @ %s: [%s] %s',
+                              self.name, self._connect_method, address, 
+                              e.__class__.__name__, str(e))
         if success:
             self._connected = True
         elif last_exc is not None:
@@ -168,6 +174,7 @@ class Device(object):
 
     def disconnect(self):
         """Disconnects from the device."""
+        logging.debug('DISCONNECT %s %s', self.name, self._connect_method)
         self._disconnect()
         self._connected = False
 
