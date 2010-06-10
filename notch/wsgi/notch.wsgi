@@ -49,19 +49,18 @@ LOG_LEVEL = logging.DEBUG
 LOG_MAX_SIZE = 20 * 1048576
 LOG_BACKUP_COUNT = 5
 
-if ENABLE_EXTRA_LOGS:
-    logger = logging.getLogger()
-    logger.setLevel(LOG_LEVEL)
-    log_handler = logging.handlers.RotatingFileHandler(
-        LOG_FILENAME,
-        maxBytes=LOG_MAX_SIZE,
-        backupCount=LOG_BACKUP_COUNT)
+logger = logging.getLogger()
+logger.setLevel(LOG_LEVEL)
+log_handler = logging.handlers.RotatingFileHandler(
+    LOG_FILENAME,
+    maxBytes=LOG_MAX_SIZE,
+    backupCount=LOG_BACKUP_COUNT)
 
-    # I2010-06-10 10:30:00,183 foo.py:187|Connecting to ......  
-    formatter = logging.Formatter(
-        '%(levelname)1.1s%(asctime)s %(module)s:%(lineno)d|%(message)s')
-    log_handler.setFormatter(formatter)
-    logger.addHandler(log_handler)
+# I2010-06-10 10:30:00,183 foo.py:187|Connecting to ......  
+formatter = logging.Formatter(
+    "%(levelname)1.1s%(asctime)s %(module)s:%(lineno)d %(message)s")
+log_handler.setFormatter(formatter)
+logger.addHandler(log_handler)
 
 
 class NoConfigError(Exception):
