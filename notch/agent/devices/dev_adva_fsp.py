@@ -14,10 +14,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Adva FSP 3000 (non-Movaz) device model."""
+"""Adva FSP 3000 device model."""
 
 import dev_paramiko
 
 
 class FspDevice(dev_paramiko.ParamikoDevice):
     """An Adva FSP device model."""
+

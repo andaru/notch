@@ -25,6 +25,7 @@ import paramiko
 import notch.agent.errors
 
 import device
+import scp
 
 
 class ParamikoDevice(device.Device):
@@ -92,7 +93,7 @@ class ParamikoDevice(device.Device):
         return transport
 
     def _exec_command(self, command, bufsize=-1, combine_stderr=False,
-                      timeout=None):       
+                      timeout=None):
         transport = self.__check_transport()
         channel = transport.open_session()
         channel.set_combine_stderr(combine_stderr)
@@ -125,6 +126,28 @@ class ParamikoDevice(device.Device):
             stderr.close()
 
     def download_file(self, source, destination, mode=None, overwrite=False):
+        if not overwrite:
+            if os.path.exists(destination):
+                raise notch.agent.errors.DownloadError('Destination %r already '
+                                                       'exists' % destination)
+        try:
+            f = file(destination, 'wb')
+        except (OSError, IOError), e:
+            logging.error('%s: Failed to open %s for writing',
+                          self.name, destination)
+            return None
+        else:
+
+
+            transport = self.__check_transport()
+            scp = scp.ScpClient(transport)
+            try:
+                scp.get(source, destination, preserve_times=True)
+            except scp.ScpError, e:
+                raise notch.agent.errors.DownloadError(str(e))
+
+    def upload_file(self, source, destination, mode=None, overwrite=False):
+        # TODO(afort): Handle overwrite (check remote filesystem?).
         try:
             f = file(destination, 'wb')
         except (OSError, IOError), e:
@@ -133,24 +156,8 @@ class ParamikoDevice(device.Device):
             return None
         else:
             transport = self.__check_transport()
-            scp = transport.open_session()
-            scp.exec_command('scp -q -f %s\n' % destination)
-            stdin = scp.makefile('wb', bufsize)
-            stdout = scp.makefile('rb', bufsize)
-
-            command_bytes = ('C', 'T', 'D')
-            while True:
-                try:
-                    lines = stdout.readlines()
-                    print lines                       
-                except (OSError, EOFError), e:
-                    logging.error('Got error.')
-
-#             # SCP "implementation".
-#             scp.exec_command('scp -q -f %s\n'
-#                              % '/'.join(destination.split('/')[:-1]))
-#             scp.send('C%s %d %s\n' %
-#                      (oct(os.stat(source)
-
-                     
-
+            scp = scp.ScpClient(transport)
+            try:
+                scp.put(source, destination, preserve_times=True)
+            except scp.ScpError, e:
+                raise notch.agent.errors.DownloadError(str(e))
