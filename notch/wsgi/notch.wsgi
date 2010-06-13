@@ -27,7 +27,12 @@ import os
 import site
 import sys
 
-site.addsitedir('/usr/local/notch/venv/NOTCH/lib/python2.6/site-packages')
+
+# Set this to your Notch Agent virtualenv's site-packages directory.
+VIRTUAL_ENVIRONMENT = '/usr/local/notch/venv/NOTCH/lib/python2.6/site-packages'
+
+site.addsitedir(VIRTUAL_ENVIRONMENT)
+
 
 import notch.agent.applications
 import notch.agent.utils
