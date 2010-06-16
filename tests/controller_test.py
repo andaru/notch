@@ -124,7 +124,8 @@ class TestController(unittest.TestCase):
         sess = self.mock.CreateMock(session.Session)
         self.mock.ReplayAll()
         self.controller.sessions = {sk: sess}
-        self.assertRaises(ValueError, self.controller.request, 'command',
+        self.assertRaises(errors.NoSessionCreatedError,
+                          self.controller.request, 'command',
                           command='show run')
         self.mock.VerifyAll()
 
