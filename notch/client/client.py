@@ -457,7 +457,7 @@ class Connection(object):
         """
         # For synchronous mode responses.
         results = []
-        kb = 0
+
         for r in requests:
             method = getattr(
                 self, self.API_METHOD_PREFIX + r.notch_method, None)
