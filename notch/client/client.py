@@ -426,6 +426,10 @@ class Connection(object):
             'download_file', request, ('device_name', 'source', 'destination',
                                        'mode', 'overwrite'))
 
+    def _notch_api_get_config(self, request):
+        return self._send_notch_api_request(
+            'get_config', request, ('device_name', 'source', 'mode'))
+
     def _setup_agents(self):
         """Sets up the Notch JSON RPC agent connection.
 
@@ -641,6 +645,23 @@ class Connection(object):
                                             'destination': destination,
                                             'overwrite': overwrite,
                                             'mode': mode},
+                          callback=callback, callback_args=callback_args,
+                          callback_kwargs=callback_kwargs)
+        r = self.exec_request(request)
+        
+        if request.callback:
+            return
+        else:
+            if isinstance(r.error, Exception):
+                raise r.error
+            else:
+                return r.result
+
+    def get_config(self, device_name, source=None, mode=None, callback=None,
+                   callback_args=None, callback_kwargs=None):
+        request = Request('get_config', {'device_name': device_name,
+                                         'source': source,
+                                         'mode': mode},
                           callback=callback, callback_args=callback_args,
                           callback_kwargs=callback_kwargs)
         r = self.exec_request(request)

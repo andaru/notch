@@ -20,6 +20,7 @@
 import logging
 import os
 import socket
+import tempfile
 
 import paramiko
 
@@ -147,3 +148,9 @@ class ParamikoDevice(device.Device):
             s.put(source, destination, preserve_times=True)
         except scp.ScpError, e:
             raise notch.agent.errors.DownloadError(str(e))
+
+    def get_config(self, source, mode=None):
+        tf = tempfile.NamedTemporaryFile()
+        self.download_file(source, tf.name, mode=mode)
+        tf.seek(0)
+        return tf.read()
