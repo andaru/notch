@@ -39,7 +39,7 @@ class ScpClient(object):
         self.callback = callback
 
         self.channel = None
-        self._receive_directory = None
+        self._receive_path = None
         self._matime = None
         self._handle = None
 
@@ -59,7 +59,7 @@ class ScpClient(object):
         
     def get(self, remote_path, local_path='', preserve_times=False):
         self.channel = self._channel()
-        self._receive_directory = local_path or os.getcwd()
+        self._receive_path = local_path or os.getcwd()
         preserve = ('', ' -p')[int(preserve_times)]
         self.channel.exec_command('scp%s -f %s' % (preserve, remote_path))
         self._command_response()
@@ -110,7 +110,11 @@ class ScpClient(object):
         try:
             mode = int(parts[0], 8)
             size = int(parts[1])
-            path = os.path.join(self._receive_directory, parts[2])
+            if os.path.isdir(self._receive_path):
+                path = os.path.join(self._receive_path, parts[2])
+            else:
+                path = self._receive_path
+
         except (IndexError, AttributeError):
             self.channel.send('\x01')
             self.channel.close()
