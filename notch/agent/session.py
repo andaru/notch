@@ -24,7 +24,7 @@ The controller manages a cache of Session object instances,
 keeping devices connected until idle timers expire.
 """
 
-
+import base64
 import collections
 import logging
 import threading
@@ -161,6 +161,9 @@ class Session(object):
                     # May raise any exception, we'll trigger a retry
                     # upon API errors with the retry attribute set.
                     result = device_method(*args, **kwargs)
+                    # We must now base64 encode the string result,
+                    # incase it contains binary data.
+                    result = base64.b64encode(result)
                 except errors.ApiError, e:
                     # Normally, we'll disconnect upon error just incase.
                     if e.disconnect_on_error:

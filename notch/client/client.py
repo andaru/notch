@@ -117,6 +117,7 @@ For example::
 
 """
 
+import base64
 import eventlet
 # Need to monkey patch due to lazy socket references in httplib, used
 # by jsonrpclib.
@@ -364,7 +365,15 @@ class Connection(object):
             request = gt.wait()
         except RequestCancelledError:
             request = None
+
         if request is not None:
+            # As the string result is base64 encoded, decode it.
+            try:
+                request.result = base64.b64decode(request.result)
+            except TypeError:
+                # The string did not decode; just log an error.
+                logging.error('RPC result encountered error during base64 decode.')
+
             request.finish(self._counters)
             if request.callback is not None:
                 request.callback(request, *args, **kwargs)
