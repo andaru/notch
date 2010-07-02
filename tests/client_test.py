@@ -48,6 +48,28 @@ class RequestTest(unittest.TestCase):
                                 'command': 'show ver'})
         self.assert_(not r.valid)
 
+    def testCopiesAreMutable(self):
+        r = client.Request('command', {'command': 'show ver'})
+        r1 = copy.copy(r)
+        r2 = copy.copy(r)
+        r1.arguments['device_name'] = 'sw1.abc'
+        r2.arguments['device_name'] = 'br3.xyz'
+        self.assertEqual('sw1.abc', r1.arguments.get('device_name'))
+        self.assertEqual('br3.xyz', r2.arguments.get('device_name'))
+
+    def testCopiesWithoutMagicAreNotMutable(self):
+        r = client.Request('command', {'command': 'show ver'})
+        # Disable the magic copy method.
+        client.Request.__copy__ = None
+        r1 = copy.copy(r)
+        r2 = copy.copy(r)
+        r1.arguments['device_name'] = 'br3.xyz'
+        r2.arguments['device_name'] = 'sw1.abc'
+        # r1's unique value is lost, because r1 and r2's .argument
+        # attributes are references to the same dict.
+        self.assertEqual('sw1.abc', r1.arguments.get('device_name'))
+        self.assertEqual('sw1.abc', r2.arguments.get('device_name'))
+
     def testDeepCopiesAreMutable(self):
         r = client.Request('command', {'command': 'show ver'})
         r1 = copy.deepcopy(r)
@@ -56,6 +78,18 @@ class RequestTest(unittest.TestCase):
         r2.arguments['device_name'] = 'br3.xyz'
         self.assertEqual('sw1.abc', r1.arguments.get('device_name'))
         self.assertEqual('br3.xyz', r2.arguments.get('device_name'))
+
+    def testDeepCopiesWithoutMagicAreStillMutable(self):
+        r = client.Request('command', {'command': 'show ver'})
+        # Disable the magic copy method.
+        client.Request.__copy__ = None
+        client.Request.__deepcopy__ = None
+        r1 = copy.deepcopy(r)
+        r2 = copy.deepcopy(r)
+        r1.arguments['device_name'] = 'br3.xyz'
+        r2.arguments['device_name'] = 'sw1.abc'
+        self.assertEqual('br3.xyz', r1.arguments.get('device_name'))
+        self.assertEqual('sw1.abc', r2.arguments.get('device_name'))
        
 
 class ConnectionTest(unittest.TestCase):

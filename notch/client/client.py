@@ -118,6 +118,7 @@ For example::
 """
 
 import base64
+import copy
 import eventlet
 # Need to monkey patch due to lazy socket references in httplib, used
 # by jsonrpclib.
@@ -217,6 +218,21 @@ class Request(object):
     valid = property(lambda x: (x.notch_method and x.arguments))
     completed = property(lambda x: x._completed())
     is_async = property(lambda x: bool(x.callback))
+
+    def __copy__(self):
+        """Produce a deep copy of the object."""
+        obj_copy = self.__class__(self.notch_method,
+                                  arguments=self.arguments.copy(),
+                                  callback=self.callback,
+                                  callback_args=self.callback_args,
+                                  callback_kwargs=self.callback_kwargs.copy(),
+                                  timeout_s=self.timeout_s)
+        obj_copy.result = self.result
+        obj_copy.error = self.error
+        obj_copy.time_sent = self.time_sent
+        obj_copy.time_completed = self.time_completed
+        obj_copy.time_elapsed_s = self.time_elapsed_s
+        return obj_copy
 
     def __repr__(self):
         return '%s(notch_method=%r, arguments=%r)' % (self.__class__.__name__,
