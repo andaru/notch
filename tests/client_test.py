@@ -17,9 +17,12 @@
 """Tests for the client module."""
 
 
+import copy
+import os
+
 import mox
 import unittest
-import os
+
 from eventlet.green import time
 
 import jsonrpclib
@@ -45,6 +48,15 @@ class RequestTest(unittest.TestCase):
                                 'command': 'show ver'})
         self.assert_(not r.valid)
 
+    def testDeepCopiesAreMutable(self):
+        r = client.Request('command', {'command': 'show ver'})
+        r1 = copy.deepcopy(r)
+        r2 = copy.deepcopy(r)
+        r1.arguments['device_name'] = 'sw1.abc'
+        r2.arguments['device_name'] = 'br3.xyz'
+        self.assertEqual('sw1.abc', r1.arguments.get('device_name'))
+        self.assertEqual('br3.xyz', r2.arguments.get('device_name'))
+       
 
 class ConnectionTest(unittest.TestCase):
 
