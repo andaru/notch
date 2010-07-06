@@ -7,6 +7,7 @@ setup.py
 notch/__init__.py
 notch.egg-info/PKG-INFO
 notch.egg-info/SOURCES.txt
+notch.egg-info/SOURCES.txt.orig
 notch.egg-info/dependency_links.txt
 notch.egg-info/entry_points.txt
 notch.egg-info/requires.txt

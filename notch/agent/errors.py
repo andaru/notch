@@ -113,7 +113,7 @@ class NoAddressesError(ApiError):
 
 
 class NoMatchingCredentialError(ApiError, CredentialError):
-    """There was nothing in the credentials store matching the hostname."""
+    """There was no matching credential for your request."""
 
     
 class NoSuchDeviceError(ApiError):

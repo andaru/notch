@@ -383,12 +383,14 @@ class Connection(object):
             request = None
 
         if request is not None:
-            # As the string result is base64 encoded, decode it.
-            try:
-                request.result = base64.b64decode(request.result)
-            except TypeError:
-                # The string did not decode; just log an error.
-                logging.error('RPC result encountered error during base64 decode.')
+            if request.error is None:
+                # As the string result is base64 encoded, decode it.
+                try:
+                    request.result = base64.b64decode(request.result)
+                except TypeError:
+                    # The string did not decode; just log an error.
+                    logging.error(
+                        'RPC result encountered error during base64 decode.')
 
             request.finish(self._counters)
             if request.callback is not None:

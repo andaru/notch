@@ -118,6 +118,9 @@ class Session(object):
             return
         elif self._connected:
             return
+        if self._credential is None:
+            raise errors.NoMatchingCredentialError()
+
         self.device.connect(credential=self._credential,
                             connect_method=self._credential.connect_method)
         self.time_last_connect = time.time()
