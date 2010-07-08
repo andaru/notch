@@ -183,9 +183,8 @@ class IosDevice(device.Device):
                             'Password not accepted on %r.' % self.name)
  
     def _disconnect(self):
-        self._transport.write('exit\n')
         try:
-            _ = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
+            self._transport.write('exit\n')
         except (OSError, EOFError, pexpect.EOF):
             return
         else:
