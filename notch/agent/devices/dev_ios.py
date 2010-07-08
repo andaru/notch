@@ -185,7 +185,8 @@ class IosDevice(device.Device):
     def _disconnect(self):
         try:
             self._transport.write('exit\n')
-        except (OSError, EOFError, pexpect.EOF):
+        except (notch.agent.errors.CommandError,
+                OSError, EOFError, pexpect.EOF):
             return
         else:
             self._transport.disconnect()
