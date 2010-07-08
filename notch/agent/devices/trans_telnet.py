@@ -50,7 +50,7 @@ class TelnetDeviceTransport(object):
     DEFAULT_TIMEOUT_RESP_SHORT = 7
     DEFAULT_TIMEOUT_RESP_LONG = 180
     DEFAULT_TIMEOUT_DISCONNECT = 15
-    
+
     def __init__(self, address=None, port=None, timeouts=None, **kwargs):
         """Initializer.
 
@@ -89,7 +89,7 @@ class TelnetDeviceTransport(object):
             raise notch.agent.errors.ConnectError(
                 'Error connecting to %s. %s: %s'
                 % (str(self.address), e.__class__.__name__, str(e)))
-        
+
     def flush(self):
         """Eagerly flush any remaining data from the read fd."""
         if self._c is None:
@@ -98,26 +98,17 @@ class TelnetDeviceTransport(object):
             return self._c.read_very_eager()
 
     def _close(self):
-        if self._c is None:
-            return
-        else:
+        if self._c is not None:
             self._c.close()
             self._c = None
 
     def disconnect(self):
        """Closes the telnet session and returns any remaining data."""
-       result = None
        try:
-           try:
-               result = self.flush()
-           except EOFError:
-               pass
-       finally:
-           try:
-               self._close()
-               return result
-           except EOFError:
-               pass
+           self._close()
+       except EOFError:
+           logging.debug('trans_telnet [%s:%s] EOFError during disconnect()',
+                         self.address, self.port)
 
     def write(self, s):
         try:
@@ -132,7 +123,7 @@ class TelnetDeviceTransport(object):
 
     def expect(self, re_list, timeout=None):
         timeout = timeout or self.timeouts.resp_long
-        return self._expect.expect(re_list, timeout=timeout)      
+        return self._expect.expect(re_list, timeout=timeout)
 
     def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
                 command_trailer='\n', expect_command=True):
@@ -237,4 +228,3 @@ class TelnetDeviceTransport(object):
                 return self.before
             else:
                 return self.before[:prompt_index]
-
