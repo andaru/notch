@@ -1,0 +1,3 @@
+[console_scripts]
+notch-agent = notch.agent.agent:main
+

@@ -1,0 +1,15 @@
+Agent:
+
+  * Add RPC authentication.
+  * Add SetConfig/GetConfig and all other methods to Notch device API.
+  * Session dashboard. Session info should also be available via an RPC.
+  * Counters and counter data export for monitoring.
+
+Client:
+
+  * Record RPC latencies.
+  * Gather other RPC statistics.
+  * Use RPC statistics to influence load balancer, strategies such as:
+    * Inverse RTT
+    * Error Averse
+
