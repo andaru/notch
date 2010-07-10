@@ -16,22 +16,19 @@
 
 """Notch device model for Netscreen ScreenOS operating system."""
 
+
 import dev_ios
 
 
-class ScreenOsDevice(dev_ios.IosDevice):
+class ScreenosDevice(dev_ios.IosDevice):
     """Netscreen ScreenOS device.
 
     Connect methods supported:
       sshv2 (via Paramiko in interactive mode with pexpect)
-      telnet (via telnetlib)
     """
 
-    LOGIN_PROMPT = 'sername:'
-    PASSWORD_PROMPT = 'assword:'
     PROMPT = re.compile(r'\S+\s?->')
 
-    ENABLE_CHAR = '#'
-
-    DEFAULT_CONNECT_METHOD = 'sshv2'
-
+    def __init__(self, name=None, addresses=None):
+        super(ScreenOsDevice, self).__init__(name=name, addresses=addresses)
+        self.connect_methods = ('sshv2', )
