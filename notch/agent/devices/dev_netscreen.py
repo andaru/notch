@@ -17,6 +17,8 @@
 """Notch device model for Netscreen ScreenOS operating system."""
 
 
+import re
+
 import dev_ios
 
 

@@ -7,7 +7,6 @@ setup.py
 notch/__init__.py
 notch.egg-info/PKG-INFO
 notch.egg-info/SOURCES.txt
-notch.egg-info/SOURCES.txt.orig
 notch.egg-info/dependency_links.txt
 notch.egg-info/entry_points.txt
 notch.egg-info/requires.txt
@@ -31,12 +30,13 @@ notch/agent/utils.py
 notch/agent/wsgi.py
 notch/agent/devices/__init__.py
 notch/agent/devices/dev_adva_fsp.py
+notch/agent/devices/dev_arbor.py
 notch/agent/devices/dev_binos.py
 notch/agent/devices/dev_ios.py
 notch/agent/devices/dev_junos.py
+notch/agent/devices/dev_netscreen.py
 notch/agent/devices/dev_nos.py
 notch/agent/devices/dev_paramiko.py
-notch/agent/devices/dev_screenos.py
 notch/agent/devices/dev_timos.py
 notch/agent/devices/device.py
 notch/agent/devices/paramiko_expect.py
