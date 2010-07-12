@@ -17,7 +17,12 @@
 """Notch device model for Netscreen ScreenOS operating system."""
 
 
+import logging
 import re
+
+import pexpect
+
+import notch.agent.errors
 
 import dev_ios
 
@@ -30,7 +35,48 @@ class ScreenosDevice(dev_ios.IosDevice):
     """
 
     PROMPT = re.compile(r'\S+\s?->')
+    UNSAVED_CONFIG = re.compile(r'Configuration modified, save\?')
 
     def __init__(self, name=None, addresses=None):
-        super(ScreenOsDevice, self).__init__(name=name, addresses=addresses)
+        super(ScreenosDevice, self).__init__(name=name, addresses=addresses)
         self.connect_methods = ('sshv2', )
+
+    def _disable_pager(self):
+        logging.debug('Disabling pager on %r', self.name)
+        self._transport.command('set console page 0', self._prompt)
+        logging.debug('Disabled pager on %r', self.name)
+
+    def _enable(self, enable_password):
+        pass
+
+    def _disconnect(self):       
+        try:
+            self._transport.write('exit\n')
+            i = self._transport.expect([self.UNSAVED_CONFIG,
+                                        pexpect.EOF,
+                                        pexpect.TIMEOUT],
+                                       self.timeouts.resp_short)
+            if i == 0:
+                # No trailing newline necessary on test units.
+                self._transport.write('n')
+            return
+        except (notch.agent.errors.CommandError,
+                OSError, EOFError, pexpect.EOF):
+            return
+        else:
+            self._transport.disconnect()
+
+    def _command(self, command, mode=None):
+        # mode argument is as yet unused. Quieten pylint.
+        _ = mode
+        try:
+            return self._transport.command(command, self._prompt)
+        except (OSError, EOFError, pexpect.EOF), e:
+            if command in ('logout', 'exit'):
+                pass
+            else:
+                exc = notch.agent.errors.CommandError(str(e))
+                exc.retry = True
+                raise exc
+
+    

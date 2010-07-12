@@ -136,7 +136,7 @@ class ParamikoExpectTransport(object):
             self._c = None
 
     def disconnect(self):
-       """Closes the telnet session and returns any remaining data."""
+       """Closes the SSH session and returns any remaining data."""
        result = None
        try:
            try:
