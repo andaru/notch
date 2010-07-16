@@ -49,7 +49,7 @@ class ScreenosDevice(dev_ios.IosDevice):
     def _enable(self, enable_password):
         pass
 
-    def _disconnect(self):       
+    def _disconnect(self):
         try:
             self._transport.write('exit\n')
             i = self._transport.expect([self.UNSAVED_CONFIG,
@@ -78,5 +78,3 @@ class ScreenosDevice(dev_ios.IosDevice):
                 exc = notch.agent.errors.CommandError(str(e))
                 exc.retry = True
                 raise exc
-
-    
