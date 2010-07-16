@@ -484,6 +484,7 @@ class Connection(object):
         """
         # For synchronous mode responses.
         results = []
+        gts = set()
 
         for r in requests:
             method = getattr(
@@ -493,6 +494,7 @@ class Connection(object):
                 # Get a threenthread to run the method in and start
                 # the request timer.
                 gt = self._pool.spawn(method, r)
+                gts.add(gt)
                 r.start()
             else:
                 self._counters.req_error += 1
@@ -517,7 +519,7 @@ class Connection(object):
             # Return any synchronous results.
             return results
         else:
-            return None
+            return gts
 
     def exec_request(self, request, callback=None, args=None, kwargs=None):
         """Executes a NotchRequest in this client.
@@ -539,10 +541,8 @@ class Connection(object):
         if args: request.callback_args = args
         if kwargs: request.callback_kwargs = kwargs
         result = self._exec_requests([request])
-        if result is None:
-            return result
-        else:
-            return result[0]
+        # We always just want the first (result or gt) from the list.
+        return result[0]
 
     def exec_requests(self, requests, callback=None, args=None, kwargs=None):
         """Plural form of exec_request. Executes many requests.
