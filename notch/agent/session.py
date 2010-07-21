@@ -140,6 +140,7 @@ class Session(object):
 
     def request(self, method, *args, **kwargs):
         """Executes a request on this session."""
+        result = None
         self._exclusive.acquire()
         try:
             # Check the method name is valid.
@@ -166,7 +167,7 @@ class Session(object):
                     result = device_method(*args, **kwargs)
                     # We must now base64 encode the string result,
                     # incase it contains binary data.
-                    result = base64.b64encode(result)
+
                 except errors.ApiError, e:
                     # Normally, we'll disconnect upon error just incase.
                     if e.disconnect_on_error:
@@ -180,11 +181,19 @@ class Session(object):
                         result = device_method(*args, **kwargs)
                     else:
                         raise e
-
                 self.time_last_response = time.time()
-                return result
             finally:
                 self.idle = True
+                
         finally:
             self._exclusive.release()
+
+        try:
+            return base64.b64encode(result)
+        except Exception, e:
+            logging.error('Error base64 encoding result. '
+                          '%s: %s. Original result: %r',
+                          e.__class__.__name__, str(e), result)
+            return result
+
 
