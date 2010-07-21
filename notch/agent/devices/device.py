@@ -73,7 +73,7 @@ class Device(object):
         self.connect_methods = tuple()
         try:
             self._set_addresses(addresses)
-        except (ValueError, ipaddr.Error), e:
+        except (ValueError, TypeError), e:
             logging.error('Error parsing addresses %s: %s',
                           addresses, str(e))
             self._addresses = []
