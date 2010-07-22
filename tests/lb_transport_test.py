@@ -63,9 +63,12 @@ class BackendPolicyTest(mox.MoxTestBase):
 
         pol = lb_transport.RoundRobinPolicy([be1, be2])
         iterator = iter(pol)
-        self.assertEqual(iterator.next(), be1)
-        self.assertEqual(iterator.next(), be2)
-        self.assertEqual(iterator.next(), be1)
+        first = iterator.next()
+        second = iterator.next()
+        third = iterator.next()
+        self.assert_(first == be1 or first == be2)
+        self.assert_(first != second)
+        self.assert_(third == first)
         self.mox.VerifyAll()
 
     def testRandomPolicy(self):
