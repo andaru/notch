@@ -78,8 +78,8 @@ class TestDevice(unittest.TestCase):
         def del_invalid():
             del dev.addresses
 
-        self.assertRaises(ipaddr.IPAddressIPValidationError, set_invalid_1)
-        self.assertRaises(ipaddr.IPAddressIPValidationError, set_invalid_2)
+        self.assertRaises(ValueError, set_invalid_1)
+        self.assertRaises(ValueError, set_invalid_2)
         set_valid()
         self.assertEqual(dev.addresses, [ipaddr.IPAddress('10.0.0.1')])
         self.assertRaises(AttributeError, del_invalid)
