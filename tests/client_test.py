@@ -17,6 +17,7 @@
 """Tests for the client module."""
 
 
+import base64
 import copy
 import os
 
@@ -93,6 +94,7 @@ class RequestTest(unittest.TestCase):
        
 
 class ConnectionTest(unittest.TestCase):
+    """Tests for the Notch Agent JSON-RPC Connection class."""
 
     def testSetup(self):
         nc = client.Connection('localhost:1')
@@ -142,12 +144,12 @@ class ConnectionTest(unittest.TestCase):
         m = mox.Mox()
         notch = m.CreateMockAnything()
         notch.command(command='show ver', device_name='localhost',
-                      mode=None).AndReturn('RouterOS 1.0')
+                      mode=None).AndReturn(base64.b64encode('RouterOS 1.0'))
         notch.command(command='help', device_name='localhost',
-                      mode=None).AndReturn('Help goes here')
+                      mode=None).AndReturn(base64.b64encode('Help goes here'))
         notch.command(command='show version and blame',
                       device_name='localhost',
-                      mode=None).AndReturn('Too many names...')
+                      mode=None).AndReturn(base64.b64encode('Too many names...'))
         m.ReplayAll()
 
         nc = client.Connection('localhost:1')

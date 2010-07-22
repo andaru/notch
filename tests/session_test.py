@@ -17,8 +17,10 @@
 """Unit tests for session management."""
 
 
-import mox
+import base64
 import unittest
+
+import mox
 
 from notch.agent import credential
 from notch.agent import errors
@@ -122,7 +124,8 @@ class TestSessionMockDevice(unittest.TestCase):
         s = session.Session(device=dev)
         s.credential = self.credential
         result = s.request('command', 'show version')
-        self.assertEqual(result, '# Config data')
+
+        self.assertEqual(base64.b64decode(result), '# Config data')
         self.mock.VerifyAll()
 
     def testCommandRequestInShellMode(self):
@@ -134,7 +137,7 @@ class TestSessionMockDevice(unittest.TestCase):
         s = session.Session(device=dev)
         s.credential = self.credential
         result = s.request('command', 'show version', mode='shell')
-        self.assertEqual(result, '# Shell mode')
+        self.assertEqual(base64.b64decode(result), '# Shell mode')
         self.mock.VerifyAll()
 
 
