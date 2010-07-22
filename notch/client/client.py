@@ -120,9 +120,6 @@ For example::
 import base64
 import copy
 import eventlet
-# Need to monkey patch due to lazy socket references in httplib, used
-# by jsonrpclib.
-eventlet.monkey_patch(all=True)
 
 import logging
 import os
@@ -135,6 +132,11 @@ import jsonrpclib
 # standard library (not our objects) without prior
 # configuration anyhow.
 jsonrpclib.config.use_jsonclass = False
+
+# Need to monkey patch due to lazy socket references in httplib, used
+# by jsonrpclib.
+eventlet.monkey_patch(all=False, socket=True)
+
 
 import lb_transport
 
@@ -473,18 +475,23 @@ class Connection(object):
                 self._protocol + str(self.path), transport=self._transport)
 
     def _exec_requests(self, requests):
-        """Executes a iterable of requests.
+        """Executes a iterable of requests, returning responses or greenthreads.
 
+        If requests is an iterable of mixed synchronous and
+        asynchronous Request objects, this method's return
+        value is undefined.
+        
         Args:
           requests: An iterable of Request objects.
 
         Returns:
-          A list of Request objects, being any synchronous responses.
-          None if there were only asynchronous requests, or no responses.
+          A list of Request objects, synchronous responses.
+          A list of Greenthread objects spawned for asynchronous responses.
+          The Greenthread objects can be .wait()'ed on if required.
         """
         # For synchronous mode responses.
         results = []
-        gts = set()
+        gts = []
 
         for r in requests:
             method = getattr(
@@ -494,7 +501,6 @@ class Connection(object):
                 # Get a threenthread to run the method in and start
                 # the request timer.
                 gt = self._pool.spawn(method, r)
-                gts.add(gt)
                 r.start()
             else:
                 self._counters.req_error += 1
@@ -513,12 +519,14 @@ class Connection(object):
                 # Setup callback method for asynchronous responses.
                 gt.link(self._request_callback,
                         *r.callback_args, **r.callback_kwargs)
+                gts.append(gt)
         # Done sending (or receiving, in the synchronous case).
         self._counters.req_ok += 1
         if results:
             # Return any synchronous results.
             return results
         else:
+            # Return references to the greenthreads spawned.
             return gts
 
     def exec_request(self, request, callback=None, args=None, kwargs=None):
@@ -576,7 +584,8 @@ class Connection(object):
 
         Useful when running a client without a user interface.
         """
-        self._pool.waitall()
+        if hasattr(self, '_pool') and self._pool is not None:
+            self._pool.waitall()
 
     num_requests_running = property(lambda x: x._pool.running())
     num_requests_waiting = property(lambda x: x._pool.waiting())
