@@ -16,8 +16,6 @@
 
 """Tests for the controller module."""
 
-import adns
-import ADNS
 import ipaddr
 import mox
 import unittest
@@ -77,7 +75,6 @@ class TestController(unittest.TestCase):
                                          addresses=('10.0.0.1', ))
         self.dm = self.mock.CreateMock(device_manager.DeviceManager)
         self.controller.device_manager = self.dm
-        response = (adns.status.ok, None, None, ('10.0.0.1', ))
         self.dm.device_info('xr1.foo').AndReturn(dev1)
         self.dm.device_info('xr1.foo').AndReturn(dev1)
         self.mock.ReplayAll()
