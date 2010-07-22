@@ -29,9 +29,11 @@ import sys
 
 
 # Set this to your Notch Agent virtualenv's site-packages directory.
-VIRTUAL_ENVIRONMENT = '/usr/local/notch/venv/NOTCH/lib/python2.6/site-packages'
+VIRTUAL_ENV='/var/wsgi-apps/notch/venv'
+# From the root of the virtualenv, which site packages dir to add.
+SITE_PACKAGES='lib/python2.6/site-packages'
 
-site.addsitedir(VIRTUAL_ENVIRONMENT)
+site.addsitedir(os.path.join(VIRTUAL_ENV, SITE_PACKAGES))
 
 
 import notch.agent.applications
@@ -45,21 +47,19 @@ __all__ = ['application']
 ENABLE_EXTRA_LOGS = True
 
 # Where to find the Notch (.yaml) configuration file.
-NOTCH_CONFIG_PATH = '/usr/local/notch/notch.yaml'
+NOTCH_CONFIG_PATH = '/var/wsgi-apps/notch/config/notch.yaml'
 
 # Where to write debug logs to.
-LOG_FILENAME = '/var/log/apache2/app_notch.log'
+LOG_FILENAME = '/var/wsgi-apps/notch/log/notch.log'
 # Debug log level.
 LOG_LEVEL = logging.DEBUG
 LOG_MAX_SIZE = 20 * 1048576
-LOG_BACKUP_COUNT = 5
 
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVEL)
 log_handler = logging.handlers.RotatingFileHandler(
     LOG_FILENAME,
-    maxBytes=LOG_MAX_SIZE,
-    backupCount=LOG_BACKUP_COUNT)
+    maxBytes=LOG_MAX_SIZE)
 
 # I2010-06-10 10:30:00,183 foo.py:187|Connecting to ......  
 formatter = logging.Formatter(
