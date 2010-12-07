@@ -54,6 +54,7 @@ class IosDevice(device.Device):
     PASSWORD_PROMPT = 'Password:'
     PROMPT = re.compile(r'\S+\s?[>\#]')
     ERR_NOT_SETUP = 'Password required, but none set'
+    ERR_FULL = 'Sorry, session limit reached'
 
     ENABLE_CHAR = '#'
 
@@ -152,16 +153,17 @@ class IosDevice(device.Device):
         if self.connect_method == 'telnet':
             self._transport.write('\n')
             i = self._transport.expect(
-                [self.LOGIN_PROMPT, self.ERR_NOT_SETUP, pexpect.TIMEOUT,
-                 pexpect.EOF], self.timeouts.resp_short)
-            if i > 1:
+                [self.LOGIN_PROMPT, self.ERR_NOT_SETUP, self.ERR_FULL,
+                 pexpect.TIMEOUT, pexpect.EOF], self.timeouts.resp_short)
+            if i > 2:
                 # Didn't see anything we expected.
                 raise notch.agent.errors.ConnectError(
-                    'Did not find login prompt %r.' % self.LOGIN_PROMPT)
-            elif i == 1:
-                pretext = pretext.lstrip()
+                    'Did not find login prompt %r.'
+                    ' Instead, got %r' % (self.LOGIN_PROMPT,
+                                          self._transport.before))
+            elif i == 1 or i == 2:
                 raise notch.agent.errors.ConnectError(
-                    'Device says: %r' % pretext)
+                    'Device says: %r' % self._transport.match)
             else:
                 self._transport.write(username + '\n')
                 i = self._transport.expect(
