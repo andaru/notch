@@ -30,6 +30,7 @@ import notch.agent.errors
 import paramiko_expect
 import scp
 
+import trans
 
 # Constants
 DEFAULT_RECV_SIZE = 4096
@@ -44,7 +45,7 @@ class SendError(Error):
     pass
 
 
-class ParamikoExpectTransport(object):
+class ParamikoExpectTransport(trans.DeviceTransport):
     """SSH2 with expect, via Paramiko.
 
     Attributes:
@@ -53,18 +54,21 @@ class ParamikoExpectTransport(object):
       timeouts: A device.Timeouts namedtuple, timeout values to use.
     """
 
-    def __init__(self, address=None, port=None, timeouts=None, **kwargs):
+    def __init__(self, address=None, port=None, timeouts=None,
+                 strip_ansi=False, **kwargs):
         """Initializer.
 
         Args:
           address: A string hostname or IPAddr object.
           port: An int, the TCP port to connect to. None uses the default port.
           timeouts: A device.Timeouts namedtuple, timeout values to use.
+          strip_ansi: A boolean, if True, strip ANSI escape sequences.
         """
         _ = kwargs
         self.address = address
         self.timeouts = timeouts
         self.port = 22
+        self.strip_ansi = strip_ansi
         self._c = paramiko_expect.ParamikoSpawn(None)
 
     @property
@@ -161,8 +165,9 @@ class ParamikoExpectTransport(object):
             timeout = self.timeouts.resp_long
         return self._c.expect(re_list, timeout=timeout)
 
-    def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
-                command_trailer='\n', expect_command=True):
+    def ___command(self, command, prompt, timeout=None, expect_trailer='\r\n',
+                command_trailer='\n', expect_command=True,
+                pager=None, pager_response=' '):
         """Executes the command.
 
         This returns any data after the CLI command sent, prior to the

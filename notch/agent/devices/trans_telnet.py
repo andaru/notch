@@ -27,6 +27,8 @@ from eventlet.green import socket
 
 import notch.agent.errors
 
+import trans
+
 
 class Error(Exception):
     pass
@@ -36,7 +38,7 @@ class SendError(Error):
     pass
 
 
-class TelnetDeviceTransport(object):
+class TelnetDeviceTransport(trans.DeviceTransport):
     """Telnet device transport via telnetlib.
 
     Attributes:
@@ -46,24 +48,6 @@ class TelnetDeviceTransport(object):
     """
 
     DEFAULT_PORT = 23
-    DEFAULT_TIMEOUT_CONNECT = 30
-    DEFAULT_TIMEOUT_RESP_SHORT = 7
-    DEFAULT_TIMEOUT_RESP_LONG = 180
-    DEFAULT_TIMEOUT_DISCONNECT = 15
-
-    def __init__(self, address=None, port=None, timeouts=None, **kwargs):
-        """Initializer.
-
-        Args:
-          address: A string hostname or IPAddr object.
-          port: An int, the TCP port to connect to. None uses the default port.
-          timeouts: A device.Timeouts namedtuple, timeout values to use.
-        """
-        _ = kwargs
-        self.address = address
-        self.timeouts = timeouts
-        self.port = port or self.DEFAULT_PORT
-        self._c = None
 
     @property
     def match(self):
@@ -124,107 +108,3 @@ class TelnetDeviceTransport(object):
     def expect(self, re_list, timeout=None):
         timeout = timeout or self.timeouts.resp_long
         return self._expect.expect(re_list, timeout=timeout)
-
-    def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
-                command_trailer='\n', expect_command=True):
-        """Executes the command.
-
-        This returns any data after the CLI command sent, prior to the
-        CLI prompt after the output ceases.
-        """
-        timeout_long = timeout or self.timeouts.resp_long
-        timeout_short = timeout or self.timeouts.resp_short
-
-        # Find the prompt and flush the expect buffer.
-        self.write(command_trailer)
-        if isinstance(prompt, str):
-            esc_prompt = re.escape(prompt)
-        else:
-            esc_prompt = prompt
-        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
-                        timeout_short)
-        if i == 1:
-            exc = notch.agent.errors.CommandError(
-                'EOF received during command %r' % command)
-            exc.retry = True
-            raise exc
-        elif i == 2:
-            raise notch.agent.errors.CommandError('CLI prompt not found prior '
-                                                  'to sending command.')
-
-        # Send the command.
-        self.write(command + command_trailer)
-
-        # Expect the command to be echoed back first, perhaps. If the
-        # device echoes back the 'full' command for an abbreviated
-        # command input (um, thanks), allow for that, also.
-        if expect_command:
-            i = self.expect(
-                [re.escape(command) + expect_trailer, pexpect.EOF,
-                 pexpect.TIMEOUT], timeout_short)
-        else:
-            trailer = expect_trailer or os.linesep
-            i = self.expect([trailer, pexpect.EOF, pexpect.TIMEOUT],
-                            timeout_short)
-        if i > 0:
-            exc = notch.agent.errors.CommandError(
-                'Device did not start response within short response timeout.')
-            exc.retry = True
-            raise exc
-
-        i = self.expect([esc_prompt, pexpect.EOF, pexpect.TIMEOUT],
-                        timeout_long)
-        if i == 1:
-            exc = notch.agent.errors.CommandError(
-                'EOF received during command %r' % command)
-            exc.retry = True
-            raise exc
-        elif i == 2:
-            # Don't retry timeouts on the whole command - they usually
-            # indicate overloaded devices.
-            raise notch.agent.errors.CommandError(
-                'Command executed, CLI prompt not seen after %.1f sec' %
-                timeout_long)
-        else:
-            # Clean up the output to include only the part between the first
-            # character after the newline after the command requested until
-            # the last character prior to the next CLI prompt.
-            prompt_index = self.before.rfind(prompt)
-            if prompt_index == -1:
-                return self.before
-            else:
-                return self.before[:prompt_index]
-
-    def ___command(self, command, prompt, timeout=None):
-        """Executes the command, returning any data prior to the prompt."""
-        if self.timeouts:
-            timeout_long = timeout or self.timeouts.resp_long
-            timeout_short = timeout or self.timeouts.resp_short
-        else:
-            timeout_long = self.DEFAULT_TIMEOUT_RESP_LONG
-            timeout_short = self.DEFAULT_TIMEOUT_RESP_SHORT
-        self.write('\n')
-        i = self.expect([re.escape(prompt)], timeout_short)
-        if i != 0:
-            raise notch.agent.errors.CommandError(
-                'Device in an unknown state, cannot continue.')
-
-        self.write(command + '\n')
-        # Expect the command to be echoed back first.
-        i = self.expect(
-            [re.escape(command)], timeout_short)
-        if i != 0:
-            raise notch.agent.errors.CommandError(
-                'Device did not start response within short response timeout.')
-
-        i = self.expect([re.escape(prompt), pexpect.TIMEOUT, pexpect.EOF],
-                        timeout_long)
-        if i != 0:
-            raise notch.agent.errors.CommandError(
-                'Prompt not found after command.')
-        else:
-            prompt_index = self.before.rfind(prompt)
-            if prompt_index == -1:
-                return self.before
-            else:
-                return self.before[:prompt_index]
