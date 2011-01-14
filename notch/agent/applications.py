@@ -27,20 +27,17 @@ import handlers
 
 # URLs for common pages.
 BASE_URLS = [(r'/', handlers.HomeHandler),
-             (r'/_threads', handlers.ThreadsHandler),
              (r'/stopstopstop', handlers.StopHandler)]
 
 # The JSON-RPC v2.0 interface.
 JSON_RPC2_URL = r'/JSONRPC2'
 
 
-# TODO(afort): Add JSON-RPC v1 handlers (no keyword arguments).
-
 class NotchTornadoApplication(tornado.web.Application):
 
     def __init__(self, configuration):
         urls = BASE_URLS + [
-            (JSON_RPC2_URL, handlers.NotchAsyncJsonRpcHandler)]
+            (JSON_RPC2_URL, handlers.NotchSyncJsonRpcHandler)]
         # Initialise the controller and start the maintenance task.
         self.controller = controller.Controller(configuration)
         eventlet.spawn_n(self.controller.run_maintenance)
