@@ -69,160 +69,25 @@ class HomeHandler(BaseHandler):
     """Handles the root page."""
 
 
-class ThreadsHandler(BaseHandler):
-    """Handles /_threads."""
-
-    def get(self):
-        self.set_header('Content-Type', 'Text/HTML')
-        table_head = ['<table>']
-        table_foot = ['</table>']
-        foot = ['</body></html>']
-        output = ['<html><head>']
-        head_end = ['</head><body>']
-        style = ['<style type="text/css">',
-                 '.code { font-family: monospace; }',
-                 '.heavy { font-weight: bold; }',
-                 '</style>']
-        output.extend(style)
-        output.extend(head_end)
-
-        globals_done = False
-        for f in sys._current_frames().itervalues():
-            if not globals_done:
-                output.append('<div>')
-                output.extend(table_head)
-                for k, v in f.f_globals.iteritems():
-                    if not k.startswith('__'):
-                        output.append(
-                            '<tr><td class="heavy">%s'
-                            '</td><td class="code">%s</td>'
-                            % (cgi.escape(pprint.pformat(k)[1:-1]),
-                               cgi.escape(pprint.pformat(v)[1:-1])))
-                    else:
-                        continue
-                output.extend(table_foot)
-                output.append('</div>')
-                globals_done = True
-                output.append('<p>Thread objects')
-                output.extend(table_head)
-                threads = ['<tr><td class="heavy">Name</td><td class="heavy">'
-                           'Identifier</td></tr>']
-                for t in threading.enumerate():
-                    if t.ident is None:
-                        ident = '(not started)'
-                    else:
-                        ident = str(t.ident)
-
-                    threads.append('<tr><td class="heavy">%s</td>'
-                                   '<td class="code"><code>%s</code></td>'
-                                   % (cgi.escape(t.name), cgi.escape(ident)))
-                output.extend(threads)
-                output.extend(table_foot)
-
-            source_lines, n_lines = inspect.getsourcelines(f.f_code)
-            code = ['<hr />']
-            if source_lines:
-                code.append('%s lines of source' % len(source_lines))
-
-            code.extend(table_head)
-            for i in xrange(n_lines, len(source_lines)):
-                code.append('<tr><td>%s</td><td class="code">%s</td></tr>'
-                            % (cgi.escape(str(i)),
-                               cgi.escape(str(source_lines[i-n_lines]))))
-            code.extend(table_foot)
-            output.extend(code)
-
-
-            output.extend(table_head)
-            locals = []
-            for k, v in f.f_locals.iteritems():
-                if 'globals_done' == k:
-                    locals = []
-                    break
-                locals.append('<tr><td class="heavy">%s</td><td>%s</td>'
-                              % (cgi.escape(str(k)), cgi.escape(str(v))))
-
-            output.extend(locals)
-            output.extend(table_foot)
-            output.extend(foot)
-        self.write(' '.join(output))
-
-
-class AsynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
-    _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
-    
-
-    def _execute_rpc(self, request_body):
-        """Executes the RPC and sets the RPC response."""
-        response_data = self._RPC_.run(self, request_body)
-        self.set_header('Content-Type', self._RPC_.content_type)
-        self.write(response_data)
-        self.finish()
-
-    @tornado.web.asynchronous
-    def post(self):
-        """Multi-threaded JSON-RPC POST handler."""
-        self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
-        try:
-            body = jsonrpclib.loads(self.request.body)
-        except:
-            return
-        rpc_id = body.get('id')
-        method = body.get('method')
-        kwargs = body.get('params')
-        logging.info(
-            'REQUEST %s(%s) [rpcid=%s]' % (
-                method,
-                ', '.join(['%s=%r' %
-                           (k, v) for k, v in sorted(
-                            kwargs.iteritems())]),
-                rpc_id))
-        self.controller = self.settings['controller']
-        eventlet.tpool.execute(self._execute_rpc, self.request.body)
-        logging.info('REQUEST_DONE [rpcid=%s]', rpc_id)
-
-
-class SynchronousJSONRPCHandler(tornadorpc.base.BaseRPCHandler):
-    _RPC_ = tornadorpc.json.JSONRPCParser(jsonrpclib)
+class SynchronousJSONRPCHandler(tornadorpc.json.JSONRPCHandler):
+    _RPC = tornadorpc.json.JSONRPCParser(jsonrpclib)
 
     def post(self):
-        """Single-threaded JSON-RPC POST handler."""
-        self._RPC_.faults.codes.update(notch.agent.errors.error_dictionary)
-        try:
-            body = jsonrpclib.loads(self.request.body)
-        except:
-            return
-        rpc_id = body.get('id')
-        method = body.get('method')
-        kwargs = body.get('params')
-        logging.debug(
-            'REQUEST %s(%s) [rpcid=%s]' % (
-                method,
-                ', '.join(['%s=%r' %
-                           (k, v) for k, v in sorted(
-                            kwargs.iteritems())]),
-                rpc_id))
+        self._RPC.faults.codes.update(notch.agent.errors.error_dictionary)
         self.controller = self.settings['controller']
-        response_data = self._RPC_.run(self, self.request.body)
-        self.set_header('Content-Type', self._RPC_.content_type)
-        self.write(response_data)
-        logging.debug(
-            'REQUEST_DONE %s(%s) [rpcid=%s] [%d bytes]' % (
-                method, ', '.join(['%s=%r' %
-                                   (k, v) for k, v in sorted(
-                            kwargs.iteritems())]), rpc_id, len(response_data)))
-        self.finish()
+        super(SynchronousJSONRPCHandler, self).post()       
 
 
 #pylint: disable-msg=E1101
 class NotchAPI(object):
     """The Notch API.  Used as a mix-in."""
+    _RPC = tornadorpc.json.JSONRPCParser(jsonrpclib)
 
     def handle_exception(self, exc):
         # We get _RPC_ attribute via mixin.
         if not isinstance(exc, notch.agent.errors.ApiError):
             logging.debug(traceback.format_exc())
-        return notch.agent.errors.rpc_error_handler(exc, self._RPC_)
+        return notch.agent.errors.rpc_error_handler(exc, self._RPC)
 
     def devices_matching(self, **kwargs):
         try:
@@ -311,10 +176,6 @@ class NotchAPI(object):
         except notch.agent.errors.ApiError, e:
             return self.handle_exception(e)
 #pylint: enable-msg=E1101
-
-
-class NotchAsyncJsonRpcHandler(NotchAPI, AsynchronousJSONRPCHandler):
-    """The Notch API as presented to JSON-RPC asynchronously, for Tornado."""
 
 
 class NotchSyncJsonRpcHandler(NotchAPI, SynchronousJSONRPCHandler):
