@@ -46,13 +46,9 @@ class DeviceTransport(object):
     """
 
     DEFAULT_PORT = None
-    DEFAULT_TIMEOUT_CONNECT = 30
-    DEFAULT_TIMEOUT_RESP_SHORT = 7
-    DEFAULT_TIMEOUT_RESP_LONG = 180
-    DEFAULT_TIMEOUT_DISCONNECT = 15
 
     def __init__(self, address=None, port=None, timeouts=None, strip_ansi=None,
-                 **kwargs):
+                 dos2unix=False, **kwargs):
         """Initializer.
 
         Args:
@@ -63,10 +59,11 @@ class DeviceTransport(object):
         """
         _ = kwargs
         self.address = address
-        self.timeouts = timeouts
         self.port = port or self.DEFAULT_PORT
         self.strip_ansi = strip_ansi
+        self.dos2unix = dos2unix
         self._c = None
+        self.timeouts = timeouts
 
     def _strip_ansi(self, data):
         for reg in STRIP_ANSI:
@@ -156,7 +153,7 @@ class DeviceTransport(object):
             exc.retry = True
             raise exc
 
-        # Wait for the remaining data, possibly including pagers
+        # Wait for the remaining data, possibly handling pager responses
 
         response_buf = []
         while True:
@@ -169,12 +166,14 @@ class DeviceTransport(object):
                                 timeout_long)
                 i += 1
 
+            data = self.before
+            if self.dos2unix:
+                data = data.replace('\r\n', '\n')
             if i == 0:
-                # Pager found.
                 if self.strip_ansi:
-                    response_buf.append(self._strip_ansi(self.before))
+                    response_buf.append(self._strip_ansi(data))
                 else:
-                    response_buf.append(self.before)
+                    response_buf.append(data)
                 self.write(pager_response)
             elif i == 2:
                 exc = notch.agent.errors.CommandError(
@@ -191,9 +190,9 @@ class DeviceTransport(object):
                 # Clean up the output to include only the part between the first
                 # character after the newline after the command requested until
                 # the last character prior to the next CLI prompt.
-                prompt_index = self.before.rfind(prompt)
+                prompt_index = data.rfind(prompt)
                 if prompt_index == -1:
-                    response_buf.append(self.before)
+                    response_buf.append(data)
                 else:
-                    response_buf.append(self.before[:prompt_index])
+                    response_buf.append(data[:prompt_index])
                 return ''.join(response_buf)

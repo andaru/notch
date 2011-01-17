@@ -35,6 +35,7 @@ from notch.agent.devices import dev_netscreen
 from notch.agent.devices import dev_nortel_bay
 from notch.agent.devices import dev_nortel_esr
 from notch.agent.devices import dev_nos
+from notch.agent.devices import dev_omniswitch
 from notch.agent.devices import dev_timos
 
 
@@ -46,6 +47,7 @@ VENDOR_MAP = {'adva_fsp': dev_adva_fsp.FspDevice,
               'nortel_bay': dev_nortel_bay.BayDevice,
               'nortel_esr': dev_nortel_esr.EsrDevice,
               'nos': dev_nos.NosDevice,
+              'omniswitch': dev_omniswitch.OmniswitchDevice,
               'timetra': dev_timos.TimosDevice,
               'telco': dev_binos.BinosDevice,
               }
