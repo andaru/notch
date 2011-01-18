@@ -18,8 +18,8 @@
 
 Attempts to deal with the ESR8xxx and ESR18xx series devices.
 
-This module presently uses the IOS device support as a basis,
-though SSH support is untested and so, as yet, disabled.
+This module presently uses the IOS device support as a basis.
+SSH support is as yet untested.
 """
 
 
@@ -55,3 +55,12 @@ class EsrDevice(dev_ios.IosDevice):
 
     def __init__(self, name=None, addresses=None):
         super(EsrDevice, self).__init__(name=name, addresses=addresses)
+
+    def _connect(self, address=None, port=None,
+                 connect_method=None, credential=None):
+        super(EsrDevice, self)._connect(address=address,
+                                        port=port,
+                                        connect_method=connect_method,
+                                        credential=credential)
+        self._transport.strip_ansi = True
+        self._transport.dos2unix = True

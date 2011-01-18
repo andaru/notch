@@ -24,8 +24,6 @@ This module presently uses the IOS device support as a basis.
 SSH support is as yet untested.
 """
 
-## TODO: Handle BPS2000s correctly, since one cannot disable the pager
-## on them.
 
 import logging
 import re
@@ -45,8 +43,8 @@ class BayDevice(dev_ios.IosDevice):
     PASSWORD_PROMPT = 'Enter Password:'
     ERR_INVALID_INPUT = 'Invalid input detected'
     ERR_INVALID_PASSWORD = re.compile('nvalid [pP]assword')
-    PROMPT = re.compile(r'.+\s?[>\#]')
-    PAGER = re.compile(r'\-\-\-\-More .+\-\-\-\-')
+    PROMPT = re.compile(r'[^\n\r]+\s?[>\#]')
+    PAGER = re.compile(r'\-\- ?More.+')
 
     def __init__(self, name=None, addresses=None):
         super(BayDevice, self).__init__(name=name, addresses=addresses)
@@ -72,7 +70,7 @@ class BayDevice(dev_ios.IosDevice):
         _ = mode
         try:
             return self._transport.command(command, self._prompt,
-                                           expect_trailer='\r\r',
+                                           expect_trailer='\r',
                                            expect_command=True,
                                            pager=self.PAGER)
         except (OSError, EOFError, pexpect.EOF, pexpect.TIMEOUT), e:
@@ -88,8 +86,16 @@ class BayDevice(dev_ios.IosDevice):
         self._command('terminal length 0')
         logging.debug('Disabled pager on %r', self.name)
 
-    def _login(self, username, password):
+    def _connect(self, address=None, port=None,
+                 connect_method=None, credential=None):
+        super(BayDevice, self)._connect(address=address,
+                                        port=port,
+                                        connect_method=connect_method,
+                                        credential=credential)
         self._transport.strip_ansi = True
+        self._transport.dos2unix = True
+
+    def _login(self, username, password):
         # We only need to manually login for the default method, telnet.
         # XXX that this may not be the case for SSH, which is untested.
         if self.connect_method == 'telnet':
