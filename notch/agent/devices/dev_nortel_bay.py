@@ -44,7 +44,8 @@ class BayDevice(dev_ios.IosDevice):
     ERR_INVALID_INPUT = 'Invalid input detected'
     ERR_INVALID_PASSWORD = re.compile('nvalid [pP]assword')
     PROMPT = re.compile(r'[^\n\r]+\s?[>\#]')
-    PAGER = re.compile(r'\-\- ?More.+')
+    PAGER = re.compile(r'\-{2,}.*More.*\-{2,}')
+    POST_PAGER = re.compile(r'(\x08\x08 )*')
 
     def __init__(self, name=None, addresses=None):
         super(BayDevice, self).__init__(name=name, addresses=addresses)
@@ -72,7 +73,8 @@ class BayDevice(dev_ios.IosDevice):
             return self._transport.command(command, self._prompt,
                                            expect_trailer='\r',
                                            expect_command=True,
-                                           pager=self.PAGER)
+                                           pager=self.PAGER,
+                                           strip_chars=['\b ','\b'])
         except (OSError, EOFError, pexpect.EOF, pexpect.TIMEOUT), e:
             if command in ('logout', 'exit'):
                 pass
@@ -108,37 +110,36 @@ class BayDevice(dev_ios.IosDevice):
             else:
                 # Send a Control Y to get the password prompt.
                 self._transport.write(chr(25))
-                
+
                 i = self._transport.expect(
-                    [self.PASSWORD_PROMPT, pexpect.TIMEOUT,
-                     pexpect.EOF], self.timeouts.resp_short)
-                if i != 0:
+                    [self.PASSWORD_PROMPT, self.CLI_MENU_OPTION,
+                     pexpect.TIMEOUT, pexpect.EOF], self.timeouts.resp_short)
+                if i > 1:
                     raise notch.agent.errors.ConnectError(
                         'Did not find password prompt %r.'
                         % self.PASSWORD_PROMPT)
-                else:
+                # Either we're in, or we saw the password prompt.
+                # If we got asked for the password, send it.
+                if i == 0:
                     self._transport.write(password + '\n')
-                    # Next, expect the CUA menu option to appear.
+                    # Next, expect the CUA menu option to appear.               
                     i = self._transport.expect(
                         [self.CLI_MENU_OPTION, self.ERR_INVALID_PASSWORD,
                          pexpect.TIMEOUT, pexpect.EOF],
                         self.timeouts.resp_short)
                     if i == 0:
-                        # Log into CLI mode.
+                        # Logged into CLI mode.
                         logging.debug('Logged in to %r.', self.name)
-                        self._transport.write('C')
-                        i = self._transport.expect(
-                            [self.PROMPT, pexpect.TIMEOUT,
-                             pexpect.EOF], self.timeouts.resp_short)
-                        if i > 0:
-                            raise notch.agent.errors.ConnectError(
-                                'Did not find CLI mode prompt %r.'
-                                % self.PASSWORD_PROMPT)
-                        logging.debug('Switched to CLI mode on %r.', self.name)
-                    elif i == 1:
+                    elif i > 0:
                         raise notch.agent.errors.ConnectError(
                             'Password not accepted on %r.' % self.name)
-                    else:
-                        raise notch.agent.errors.ConnectError(
-                            'Password not accepted on %r or did not see menu.'
-                            % self.name)
+
+                self._transport.write('C')
+                i = self._transport.expect(
+                    [self.PROMPT, pexpect.TIMEOUT,
+                     pexpect.EOF], self.timeouts.resp_short)
+                if i > 0:
+                    raise notch.agent.errors.ConnectError(
+                        'Did not find CLI mode prompt %r.'
+                        % self.PASSWORD_PROMPT)
+                logging.debug('Switched to CLI mode on %r.', self.name)
