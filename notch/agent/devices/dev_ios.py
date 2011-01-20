@@ -52,6 +52,7 @@ class IosDevice(device.Device):
 
     LOGIN_PROMPT = 'Username:'
     PASSWORD_PROMPT = 'Password:'
+    ENABLE_PASSWORD_PROMPT = re.compile('[Pp]assword:')
     PROMPT = re.compile(r'\S+\s?[>\#]')
     ERR_NOT_SETUP = 'Password required, but none set'
     ERR_FULL = 'Sorry, session limit reached'
@@ -84,7 +85,7 @@ class IosDevice(device.Device):
         self._transport.connect(credential)
         self._login(credential.username, credential.password)
         self._get_prompt()
-        if credential.enable_password and credential.auto_enable:
+        if credential.enable_password is not None and credential.auto_enable:
             self._enable(credential.enable_password)
         self._disable_pager()
 
@@ -111,7 +112,7 @@ class IosDevice(device.Device):
         self._transport.write('enable\n')
         sent_password = False
         while True:
-            i = self._transport.expect([r'[Pp]assword:',
+            i = self._transport.expect([self.ENABLE_PASSWORD_PROMPT,
                                         r'timeout expired',
                                         r'% Bad secrets',
                                         self.PROMPT,
