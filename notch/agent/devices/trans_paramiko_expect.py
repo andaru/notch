@@ -34,7 +34,6 @@ import trans
 
 # Constants
 DEFAULT_RECV_SIZE = 4096
-DEFAULT_PORT = 22
 
 
 class Error(Exception):
@@ -54,21 +53,16 @@ class ParamikoExpectTransport(trans.DeviceTransport):
       timeouts: A device.Timeouts namedtuple, timeout values to use.
     """
 
-    def __init__(self, address=None, port=None, timeouts=None,
-                 strip_ansi=False, **kwargs):
-        """Initializer.
+    DEFAULT_PORT = 22
 
-        Args:
-          address: A string hostname or IPAddr object.
-          port: An int, the TCP port to connect to. None uses the default port.
-          timeouts: A device.Timeouts namedtuple, timeout values to use.
-          strip_ansi: A boolean, if True, strip ANSI escape sequences.
-        """
-        _ = kwargs
-        self.address = address
-        self.timeouts = timeouts
-        self.port = 22
-        self.strip_ansi = strip_ansi
+    def __init__(self, address=None, port=None, timeouts=None, strip_ansi=None,
+                 dos2unix=False, **kwargs):
+        super(ParamikoExpectTransport, self).__init__(address=address,
+                                                      port=port,
+                                                      timeouts=timeouts,
+                                                      strip_ansi=strip_ansi,
+                                                      dos2unix=dos2unix,
+                                                      **kwargs)
         self._c = paramiko_expect.ParamikoSpawn(None)
 
     @property
