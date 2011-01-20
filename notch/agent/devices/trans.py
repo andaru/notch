@@ -107,7 +107,7 @@ class DeviceTransport(object):
 
     def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
                 command_trailer='\n', expect_command=True,
-                pager=None, pager_response=' '):
+                pager=None, pager_response=' ', strip_chars=None):
         """Executes a command.
 
         This returns any data after the CLI command sent, prior to the
@@ -167,14 +167,33 @@ class DeviceTransport(object):
                 i += 1
 
             data = self.before
+            # Strip characters
+            if strip_chars:
+                for strip_char in strip_chars:
+                    data = data.replace(strip_char, '')
             if self.dos2unix:
+                # Some platforms are retarded, and thus we need to do
+                # this twice (which is safe, if slow).
+                data = data.replace('\r\n', '\n')
                 data = data.replace('\r\n', '\n')
             if i == 0:
+                # Saw the pager prompt.
                 if self.strip_ansi:
                     response_buf.append(self._strip_ansi(data))
                 else:
                     response_buf.append(data)
                 self.write(pager_response)
+            elif i == 1:
+                # Saw the command prompt, indicating we're done.
+                # Clean up the output to include only the part between the first
+                # character after the newline after the command requested until
+                # the last character prior to the next CLI prompt.
+                prompt_index = data.rfind(prompt)
+                if prompt_index == -1:
+                    response_buf.append(data)
+                else:
+                    response_buf.append(data[:prompt_index])
+                return ''.join(response_buf)
             elif i == 2:
                 exc = notch.agent.errors.CommandError(
                     'EOF received during command %r' % command)
@@ -186,13 +205,3 @@ class DeviceTransport(object):
                 raise notch.agent.errors.CommandError(
                     'Command executed, CLI prompt not seen after %.1f sec' %
                     timeout_long)
-            else:
-                # Clean up the output to include only the part between the first
-                # character after the newline after the command requested until
-                # the last character prior to the next CLI prompt.
-                prompt_index = data.rfind(prompt)
-                if prompt_index == -1:
-                    response_buf.append(data)
-                else:
-                    response_buf.append(data[:prompt_index])
-                return ''.join(response_buf)
