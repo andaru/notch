@@ -44,7 +44,7 @@ class BayDevice(dev_ios.IosDevice):
     ERR_INVALID_INPUT = 'Invalid input detected'
     ERR_INVALID_PASSWORD = re.compile('nvalid [pP]assword')
     PROMPT = re.compile(r'[^\n\r]+\s?[>\#]')
-    PAGER = re.compile(r'\-{2,}.*More.*\-{2,}')
+    PAGER = re.compile(r'(\-{4}.*More.*\-{4}|\-\-More\-\-)')
     POST_PAGER = re.compile(r'(\x08\x08 )*')
 
     def __init__(self, name=None, addresses=None):
