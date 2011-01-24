@@ -14,29 +14,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Notch device model for Nortel Passport/ESR devices.
+"""Notch device model for Nortel MESU devices.
 
 This module presently uses the IOS device support as a basis.
 SSH support is as yet untested.
 """
 
-
 import logging
 import re
-
-import pexpect
 
 import notch.agent.errors
 
 import dev_ios
 
 
-class EsrDevice(dev_ios.IosDevice):
-    """A Nortel Passport/Ethernet Switch Router class device model.
+class EsuDevice(dev_ios.IosDevice):
+    """A Nortel Metro Ethernet Service Unit class device model.
 
-    This model is used on devices like the Passport 8000 series and
-    Passport/ERS 1600 models (though the Passport 1600 cannot display
-    its config from the CLI, the ERS1624 can).
+    This model supports devices such as the ESU1850.
     """
 
     LOGIN_PROMPT = 'Login:'
@@ -53,15 +48,15 @@ class EsrDevice(dev_ios.IosDevice):
 
     def _disable_pager(self):
         logging.debug('Disabling pager on %r', self.name)
-        self._transport.command('config cli more false', self._prompt)
+        self._transport.command('disable clipaging', self._prompt)
         logging.debug('Disabled pager on %r', self.name)
 
     def __init__(self, name=None, addresses=None):
-        super(EsrDevice, self).__init__(name=name, addresses=addresses)
+        super(EsuDevice, self).__init__(name=name, addresses=addresses)
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
-        super(EsrDevice, self)._connect(address=address,
+        super(EsuDevice, self)._connect(address=address,
                                         port=port,
                                         connect_method=connect_method,
                                         credential=credential)
