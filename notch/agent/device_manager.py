@@ -115,7 +115,7 @@ class RancidDeviceProvider(DeviceProvider):
 
     name = 'router.db'
 
-    re_router_db_line = re.compile(r'([^:]+):([^:]+):([^:]+)?:?([^:]+?)?')
+    re_router_db_line = re.compile(r'([^:]+):([^:]+):([^:]+)?:?([^:#]+?)?')
 
     def __init__(self, root=None, ignore_down_devices=False, **kwargs):
         super(RancidDeviceProvider, self).__init__(**kwargs)
@@ -135,6 +135,9 @@ class RancidDeviceProvider(DeviceProvider):
         imported = 0
         devices = {}
         for line in router_db:
+            # Skip comment lines
+            if line.strip().startswith('#'):
+                continue
             match = self.re_router_db_line.match(line)
             if match is not None:
                 device_name, device_type, status, _ = match.groups()
