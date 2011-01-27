@@ -160,7 +160,6 @@ error_dictionary = {
     'InvalidModeError': 4,
     'InvalidRequestError': 5,
     'NoAddressesError': 6,
-    'NoSuchDeviceError': 10,
     'NoSuchVendorError': 7,
     'NoSessionCreatedError': 8,
     'AuthenticationError': 9,
@@ -169,6 +168,8 @@ error_dictionary = {
     'NoMatchingCredentialError': 12,
     'DownloadError': 13,
     'UploadError': 14,
+    'NoSuchDeviceError': 15,
+    'EnableError': 16,
 }
 
 reverse_error_dictionary = dict((v, k) for (k, v) in error_dictionary.items())
