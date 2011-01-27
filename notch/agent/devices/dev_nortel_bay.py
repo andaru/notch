@@ -86,6 +86,7 @@ class BayDevice(dev_ios.IosDevice):
     def _disable_pager(self):
         logging.debug('Disabling pager on %r', self.name)
         self._command('terminal length 0')
+        self._command('terminal width 132')
         logging.debug('Disabled pager on %r', self.name)
 
     def _connect(self, address=None, port=None,
