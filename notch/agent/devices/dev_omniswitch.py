@@ -45,3 +45,7 @@ class OmniswitchDevice(dev_ios.IosDevice):
                                                credential=credential)
         # Omniswitches return DOS CRLF responses - fix this.
         self._transport.dos2unix = True
+
+    def _enable(self, enable_password):
+        """The Alcatel-Lucent Omniswitch has no enable mode."""
+        pass
