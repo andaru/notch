@@ -35,6 +35,13 @@ SITE_PACKAGES='lib/python2.6/site-packages'
 
 site.addsitedir(os.path.join(VIRTUAL_ENV, SITE_PACKAGES))
 
+# As mod_wsgi doesn't allow an application to write to sys.stdout,
+# this causes 'print' in any client code to explode with an IOError.
+# We must redirect sys.stdout so that 'print' continues to be logged.
+# Alternatively, one can add 'WSGIRestrictStdout off' to the Apache
+# configuration and remove the following line.
+sys.stdout = sys.stderr
+
 
 import notch.agent.applications
 import notch.agent.utils
