@@ -168,31 +168,34 @@ class DeviceTransport(object):
 
             data = self.before
             # Strip characters
-            if strip_chars:
+            if strip_chars and data is not None:
                 for strip_char in strip_chars:
                     data = data.replace(strip_char, '')
             if self.dos2unix:
                 # Some platforms are retarded, and thus we need to do
                 # this twice (which is safe, if slow).
-                data = data.replace('\r\n', '\n')
-                data = data.replace('\r\n', '\n')
+                if data is not None:
+                    data = data.replace('\r\n', '\n')
+                    data = data.replace('\r\n', '\n')
             if i == 0:
                 # Saw the pager prompt.
-                if self.strip_ansi:
-                    response_buf.append(self._strip_ansi(data))
-                else:
-                    response_buf.append(data)
+                if data is not None:
+                    if self.strip_ansi:
+                        response_buf.append(self._strip_ansi(data))
+                    else:
+                        response_buf.append(data)
                 self.write(pager_response)
             elif i == 1:
                 # Saw the command prompt, indicating we're done.
                 # Clean up the output to include only the part between the first
                 # character after the newline after the command requested until
                 # the last character prior to the next CLI prompt.
-                prompt_index = data.rfind(prompt)
-                if prompt_index == -1:
-                    response_buf.append(data)
-                else:
-                    response_buf.append(data[:prompt_index])
+                if data is not None:
+                    prompt_index = data.rfind(prompt)
+                    if prompt_index == -1:
+                        response_buf.append(data)
+                    else:
+                        response_buf.append(data[:prompt_index])
                 return ''.join(response_buf)
             elif i == 2:
                 exc = notch.agent.errors.CommandError(
