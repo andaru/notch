@@ -18,7 +18,7 @@ import setuptools
 
 setuptools.setup(
     name='notch',
-    version='0.4.8',
+    version='0.4.9',
     description='The Network Operator\'s Toolkit for Command-line Hacking',
     entry_points = {
         'console_scripts': [
@@ -49,5 +49,5 @@ setuptools.setup(
                  ],
     packages = setuptools.find_packages(),
     test_suite='tests',
-    zip_safe = True,
+    zip_safe = False,
     )
