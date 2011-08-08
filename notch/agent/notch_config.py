@@ -23,13 +23,10 @@ editing the CONFIG_FILE_EXTENSIONS dictionary and adding a new
 configuration source class derived from the Configuration class.
 """
 
-
 import logging
 import yaml
 
 import errors
-
-
 
 
 class Configuration(object):
