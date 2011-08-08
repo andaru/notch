@@ -32,7 +32,7 @@ network (via a Notch Agent running at ``localhost:8080``)::
     except notch.client.Error:
       print 'Error querying for devices.'
       all_devices = []
-      
+
     # Send the command to each device, asynchronously receiving results.
     for device in all_devices:
       nc.command(device, 'show version', callback=callback)
@@ -44,13 +44,21 @@ network (via a Notch Agent running at ``localhost:8080``)::
 Installation
 ------------
 
-Use either easy_install::
-
-    $ easy_install notch
-
-or if you have downloaded the package already::
+If you've downloaded the software already (which seems likely given you're
+readying this), you can install Notch like so:
 
     $ python ./setup.py install
+
+Alternatively, you can use PIP to install both Notch, and the Notch Client
+library:
+
+    $ pip install notch
+    $ pip install notch.client
+
+Please do not use easy_install to install notch, as this will use an .egg
+file, making a notch.client installation unreachable.  A fix for this may
+likely later change the `notch` package name to `notch.agent`.  For now,
+don't use easy_install!
 
 
 Configuration
@@ -58,7 +66,7 @@ Configuration
 
 The Notch Agent requires some configuration to get started, and things
 are easiest if you already use the RANCID system, as the Notch Agent
-will read its configuration files to populate its inventory.  
+will read its router.db configuration file to populate its inventory.
 
 Then, you can start a Notch Agent using the following::
 
