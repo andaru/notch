@@ -20,22 +20,8 @@ These handlers implement the server-side API using session and device
 objects, using the Tornado request handler framework.
 """
 
-import cgi
-import functools
-import inspect
 import logging
-import os
-import sys
-import thread
-from eventlet.green import threading
-import time
 import traceback
-
-# This needs to be done prior to importing eventlet.tpool
-if not os.environ.get('EVENTLET_THREADPOOL_SIZE'):
-    os.environ['EVENTLET_THREADPOOL_SIZE'] = '128'
-
-import eventlet.tpool
 
 import jsonrpclib
 # Disable automatic class translation.
@@ -48,16 +34,6 @@ import tornadorpc.json
 import tornadorpc.base
 
 import notch.agent.errors
-
-#import tp
-
-#tornado.options.define('threadpool_num_threads', default=64,
-#                       help='Number of threads to use in sync task threadpool.',
-#                       type=int)
-
-
-# A threadpool used for synchronous tasks.
-#_tp = tp.ThreadPool(tornado.options.options.threadpool_num_threads)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -74,7 +50,7 @@ class SynchronousJSONRPCHandler(tornadorpc.json.JSONRPCHandler):
     def post(self):
         self._RPC.faults.codes.update(notch.agent.errors.error_dictionary)
         self.controller = self.settings['controller']
-        super(SynchronousJSONRPCHandler, self).post()       
+        super(SynchronousJSONRPCHandler, self).post()
 
 
 #pylint: disable-msg=E1101
