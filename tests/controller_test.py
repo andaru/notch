@@ -35,6 +35,13 @@ class TestController(unittest.TestCase):
         self.mock = mox.Mox()
         self.credential = credential.Credential(regexp='.*',
                                                 connect_method='foo')
+        # Refactor abstract Credentials class so it can be initialised
+        # without content.
+        self.controller.credentials = credential.Credentials('')
+        self.controller.credentials.credentials = [
+            credential.Credential(regexp='.*', username='cisco',
+                                  password='router')
+        ]
 
     def tearDown(self):
         self.mock.UnsetStubs()
@@ -152,6 +159,26 @@ class TestController(unittest.TestCase):
         sess.connect()
         self.controller.expire_session(None, sess)
         # No value assertions, just confirm all the device calls are made.
+        self.mock.VerifyAll()
+
+    def testRunMaintenanceWithDisconnectableSession(self):
+        dev = self.mock.CreateMock(device.Device)
+        dev.MAX_IDLE_TIME = 300.0
+        dev.name = 'xr1.foo'
+        dev.disconnect().AndReturn(None)
+        self.mock.ReplayAll()
+
+        # Send the stop event so that only one run of maintenance will occur.
+        self.controller._stopped.send()
+
+        sess = session.Session(device=dev)
+        sess._connected = True
+        sess.time_last_request = 1.0
+
+        self.controller.sessions = {self.testSessionKey(): sess}
+        self.assertTrue(sess.connected)
+        self.controller.run_maintenance()
+        self.assertFalse(sess.connected)
         self.mock.VerifyAll()
 
 

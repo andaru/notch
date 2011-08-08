@@ -22,10 +22,8 @@ the RPC server. Routine maintenance activities are also located here.
 
 import eventlet
 
-import collections
 import logging
 from eventlet.green import time
-import traceback
 
 import notch.agent.errors
 
@@ -33,11 +31,10 @@ import credential
 import device_factory
 import device_manager
 import lru
-import notch_config
 import session
 
 
-# Maximum number of active sessions (held in LRU at any one time).
+# Maximum number of active sessions held in LRU at any one time.
 # TODO(afort): Make configurable.
 MAX_ACTIVE_SESSIONS = 512
 # Default session check window period in seconds.
@@ -86,19 +83,19 @@ class Controller(object):
         timers = self.config.get('timers')
         if timers:
             try:
-                self._session_maint_period = \
-                    float(timers.get('session_maint_period',
-                                     DEFAULT_SESSION_CHECK_PERIOD_S))
+                self._session_maint_period = float(
+                    timers.get('session_maint_period',
+                               DEFAULT_SESSION_CHECK_PERIOD_S))
             except ValueError:
                 pass
 
     def _session_idle_check(self):
         """Checks the idle timeouts for all sessions."""
         start = time.time()
-        for session in [s for s in self.sessions.values()]:
-            if s is None:
+        for session in self.sessions.values():
+            if session is None:
                 continue
-            elif (not session.idle or not session.connected):
+            elif not session.idle or not session.connected:
                 continue
             elif (time.time() > (session.time_last_request or 0) +
                   session.device.MAX_IDLE_TIME):
@@ -203,25 +200,31 @@ class Controller(object):
         Returns:
           Either an errors.Error subclass instance (when the request ends
           in error), or a string being the method response.
+
+        Raises:
+          notch.agent.errors.NoSuchDeviceError if there was no device supplied
         """
         session = self.get_session(**kwargs)
         if session is None:
             raise notch.agent.errors.NoSessionCreatedError(
                 'No session available for request arguments %r' % kwargs)
-
+        if 'device_name' not in kwargs:
+                raise notch.agent.errors.NoSuchDeviceError(
+                    'No device_name argument in request')
         try:
-            # TODO(afort): What if there's no credentials or device name is
-            # missing? raise an invalid request error response to the user.
+            # TODO(afort): What if there's no credentials.
             if self.credentials and 'device_name' in kwargs:
                 session.credential = self.credentials.get_credential(
                     kwargs['device_name'])
-            return session.request(method, **kwargs)
+                return session.request(method, **kwargs)
+            else:
+                raise notch.agent.errors.NoMatchingCredentialError(
+                    'No credentials for host %r' % kwargs['device_name'])
         except notch.agent.errors.Error, e:
             raise
         except Exception, e:
             # 'Exceptional' exceptions occuring here are masked poorly
             # by the returned error (usually 'Invalid Params'), so
             # give the developer something to go by.
-            logging.error('%s: %s', str(e.__class__), str(e))
-            logging.error(traceback.format_exc())
+            logging.error('%s: %s', str(e.__class__), str(e), exc_info=True)
             raise
