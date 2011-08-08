@@ -84,7 +84,7 @@ class Session(object):
             username = ''
 
         return '<%s %s%s>' % (self.__class__.__name__, hostname, username)
-    
+
     @property
     def connected(self):
         return self._connected
@@ -141,8 +141,10 @@ class Session(object):
     def request(self, method, *args, **kwargs):
         """Executes a request on this session."""
         result = None
+        logging.debug('Acquiring lock for %s', self)
         self._exclusive.acquire()
         try:
+            logging.debug('Acquired lock for %s', self)
             # Check the method name is valid.
             if not method in self.valid_requests:
                 raise errors.InvalidRequestError(
@@ -184,8 +186,9 @@ class Session(object):
                 self.time_last_response = time.time()
             finally:
                 self.idle = True
-                
+
         finally:
+            logging.debug('Releasing lock for %s', self)
             self._exclusive.release()
 
         try:
