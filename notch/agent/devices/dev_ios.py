@@ -23,9 +23,7 @@ and this module will deal with many of them.
 
 import logging
 import re
-from eventlet.green import socket
 
-import paramiko
 import pexpect
 
 import notch.agent.errors
@@ -53,7 +51,7 @@ class IosDevice(device.Device):
     LOGIN_PROMPT = 'Username:'
     PASSWORD_PROMPT = 'Password:'
     ENABLE_PASSWORD_PROMPT = re.compile('[Pp]assword:')
-    PROMPT = re.compile(r'\S+\s?[>\#]')
+    PROMPT = re.compile(r'\S+\s?[>#]')
     ERR_NOT_SETUP = 'Password required, but none set'
     ERR_FULL = 'Sorry, session limit reached'
 
@@ -92,7 +90,7 @@ class IosDevice(device.Device):
     def _get_prompt(self):
         self._transport.write('\n')
         i = self._transport.expect([self.PROMPT], self.timeouts.resp_short)
-        if i == 0:
+        if not i:
             self._prompt = self._transport.match.group(0)
             logging.debug('Expected prompt is now: %r', self._prompt)
             return
@@ -105,7 +103,7 @@ class IosDevice(device.Device):
         try:
             _ = self._transport.expect([self.PROMPT],
                                        self.timeouts.resp_short)
-        except (pexpect.EOF, pexpect.TIMEOUT), e:
+        except (pexpect.EOF, pexpect.TIMEOUT):
             raise notch.agent.errors.EnableError('Could not find prompt prior '
                                                  'to enabling.')
 
@@ -149,9 +147,10 @@ class IosDevice(device.Device):
                 raise notch.agent.errors.EnableError(
                     'Failed to enable on %r.' % self.name)
 
-    def _login(self, username, password):
+    def _login(self, username, password, connect_method=None):
         # We only need to manually login for the default method, telnet.
-        if self.connect_method == 'telnet':
+        connect_method = connect_method or self.connect_method
+        if connect_method == 'telnet':
             self._transport.write('\n')
             i = self._transport.expect(
                 [self.LOGIN_PROMPT, self.ERR_NOT_SETUP, self.ERR_FULL,
@@ -170,7 +169,7 @@ class IosDevice(device.Device):
                 i = self._transport.expect(
                     [self.PASSWORD_PROMPT, pexpect.TIMEOUT,
                      pexpect.EOF], self.timeouts.resp_short)
-                if i != 0:
+                if i:
                     raise notch.agent.errors.ConnectError(
                         'Did not find password prompt %r.'
                         % self.PASSWORD_PROMPT)
@@ -178,13 +177,13 @@ class IosDevice(device.Device):
                     self._transport.write(password + '\n')
                     i = self._transport.expect(
                         [self.PROMPT, pexpect.TIMEOUT, pexpect.EOF],
-                        self.timeouts.resp_short)                    
-                    if i == 0:
+                        self.timeouts.resp_short)
+                    if not i:
                         logging.debug('Logged in to %r.', self.name)
                     else:
                         raise notch.agent.errors.ConnectError(
                             'Password not accepted on %r.' % self.name)
- 
+
     def _disconnect(self):
         try:
             self._transport.write('exit\n')

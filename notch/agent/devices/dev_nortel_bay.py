@@ -43,7 +43,7 @@ class BayDevice(dev_ios.IosDevice):
     PASSWORD_PROMPT = 'Enter Password:'
     ERR_INVALID_INPUT = 'Invalid input detected'
     ERR_INVALID_PASSWORD = re.compile('nvalid [pP]assword')
-    PROMPT = re.compile(r'[^\n\r]+\s?[>\#]')
+    PROMPT = re.compile(r'[^\n\r]+\s?[>#]')
     PAGER = re.compile(r'(\-{4}.*More.*\-{4}|\-\-More\-\-)')
     POST_PAGER = re.compile(r'(\x08\x08 )*')
 
@@ -72,7 +72,6 @@ class BayDevice(dev_ios.IosDevice):
         try:
             return self._transport.command(command, self._prompt,
                                            expect_trailer='\r',
-                                           expect_command=True,
                                            pager=self.PAGER,
                                            strip_chars=['\b ','\b'])
         except (OSError, EOFError, pexpect.EOF, pexpect.TIMEOUT), e:
@@ -98,10 +97,11 @@ class BayDevice(dev_ios.IosDevice):
         self._transport.strip_ansi = True
         self._transport.dos2unix = True
 
-    def _login(self, username, password):
+    def _login(self, username, password, connect_method=None):
         # We only need to manually login for the default method, telnet.
         # XXX that this may not be the case for SSH, which is untested.
-        if self.connect_method == 'telnet':
+        connect_method = connect_method or self.connect_method
+        if connect_method == 'telnet':
             i = self._transport.expect(
                 [self.PRE_LOGIN_PROMPT, pexpect.TIMEOUT, pexpect.EOF],
                 self.timeouts.resp_short)
@@ -121,14 +121,14 @@ class BayDevice(dev_ios.IosDevice):
                         % self.PASSWORD_PROMPT)
                 # Either we're in, or we saw the password prompt.
                 # If we got asked for the password, send it.
-                if i == 0:
+                if not i:
                     self._transport.write(password + '\n')
-                    # Next, expect the CUA menu option to appear.               
+                    # Next, expect the CUA menu option to appear.
                     i = self._transport.expect(
                         [self.CLI_MENU_OPTION, self.ERR_INVALID_PASSWORD,
                          pexpect.TIMEOUT, pexpect.EOF],
                         self.timeouts.resp_short)
-                    if i == 0:
+                    if not i:
                         # Logged into CLI mode.
                         logging.debug('Logged in to %r.', self.name)
                     elif i > 0:

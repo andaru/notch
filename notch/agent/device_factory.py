@@ -29,6 +29,7 @@ so that users' router.db configuration files remain compatible.
 from notch.agent.devices import dev_adva_fsp
 from notch.agent.devices import dev_arbor
 from notch.agent.devices import dev_binos
+from notch.agent.devices import dev_ftos
 from notch.agent.devices import dev_ios
 from notch.agent.devices import dev_junos
 from notch.agent.devices import dev_netscreen
@@ -43,6 +44,7 @@ from notch.agent.devices import dev_timos
 VENDOR_MAP = {'adva_fsp': dev_adva_fsp.FspDevice,
               'arbor': dev_arbor.ArborDevice,
               'cisco': dev_ios.IosDevice,
+              'ftos': dev_ftos.FtosDevice,
               'juniper': dev_junos.JunosDevice,
               'netscreen': dev_netscreen.ScreenosDevice,
               'nortel_bay': dev_nortel_bay.BayDevice,
