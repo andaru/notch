@@ -17,7 +17,6 @@
 """Device model for 'unix-like' devices using Paramiko SSH2."""
 
 
-import logging
 import os
 import socket
 import tempfile
@@ -46,7 +45,7 @@ class ParamikoDevice(device.Device):
         self._connect(address=self.__address,
                       port=self.__port,
                       connect_method=self.__connect_method,
-                      credential=self._credential)
+                      credential=self._current_credential)
 
     def _connect(self, address=None, port=None,
                  connect_method=None, credential=None):
@@ -62,7 +61,7 @@ class ParamikoDevice(device.Device):
             self._ssh_client.close()
         # Load the private key, if available.
         if credential.ssh_private_key is not None:
-            pkey = paramiko.PKey.from_private_key(
+            pkey = paramiko.RSAKey.from_private_key(
                 credential.ssh_private_key_file)
         else:
             pkey = None
@@ -82,7 +81,7 @@ class ParamikoDevice(device.Device):
 
     def _disconnect(self):
         self._ssh_client.close()
-        self._ssh_client == None
+        self._ssh_client = None
 
     def __check_transport(self):
         transport = self._ssh_client.get_transport()
