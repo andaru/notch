@@ -16,14 +16,12 @@
 
 """Telnet device transport via telnetlib."""
 
-
-import re
+import logging
 import telnetlib
 
 import fdpexpect
-import pexpect
 
-from eventlet.green import socket
+import socket
 
 import notch.agent.errors
 
