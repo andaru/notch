@@ -14,22 +14,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Telnet device transport via telnetlib."""
+"""SSH2 terminal-style device transport via paramiko and pexpect."""
 
 
-import os
-import re
-
-from eventlet.green import socket
+import logging
+import socket
+import tempfile
 
 import paramiko
-import pexpect
-
-import notch.agent.errors
 
 import paramiko_expect
 import scp
 
+import notch.agent.errors
 import trans
 
 # Constants
@@ -81,9 +78,8 @@ class ParamikoExpectTransport(trans.DeviceTransport):
             return self._c.after
 
     def connect(self, credential):
-        timeout = self.timeouts.connect
         if credential.ssh_private_key is not None:
-            pkey = paramiko.PKey.from_private_key(
+            pkey = paramiko.RSAKey.from_private_key(
                 credential.ssh_private_key_file)
         else:
             pkey = None
@@ -103,7 +99,7 @@ class ParamikoExpectTransport(trans.DeviceTransport):
             if self._c is None:
                 self._c = paramiko_expect.ParamikoSpawn(None)
             self._c.channel = self._ssh_client.invoke_shell()
-        except socket.timeout, e:
+        except socket.timeout:
             raise notch.agent.errors.ConnectError('Timed out after %.1fs' %
                                                   self.timeouts.connect)
         except (paramiko.ssh_exception.SSHException, socket.error), e:
@@ -113,7 +109,7 @@ class ParamikoExpectTransport(trans.DeviceTransport):
                         'Port %s on %r is closed.' % (self.port, self.address))
                 else:
                     raise notch.agent.errors.ConnectError(str(e))
-            except IndexError, unused_e:
+            except IndexError:
                 self.disconnect()
                 self._ssh_client = None
                 # Raise the message from the original exception.
@@ -165,5 +161,5 @@ class ParamikoExpectTransport(trans.DeviceTransport):
             local_file = tempfile.TemporaryFile()
             scp_client.get(source, local_file)
         except Exception:
-            raise notch.agent.errors.DownloadFile
+            raise notch.agent.errors.DownloadError
         return local_file.read()
