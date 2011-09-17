@@ -65,7 +65,7 @@ class Credential(object):
         if not regexp.startswith('^'):
             regexp = '^' + regexp
         if not regexp.endswith('$'):
-            regexp = regexp + '$'
+            regexp += '$'
         self._regexp_string = regexp
         self.regexp = re.compile(regexp, re.I)
         self.auto_enable = auto_enable
@@ -74,9 +74,8 @@ class Credential(object):
         self.password = password
         self.enable_password = enable_password
         self._ssh_private_key = ssh_private_key
-        self._ssh_private_key_file = None
 
-    regexp_string = property(lambda cls: cls._regexp_string)
+    regexp_string = property(lambda self: self._regexp_string)
 
     def __eq__(self, other):
         return bool(self._regexp_string == other._regexp_string and
@@ -93,19 +92,17 @@ class Credential(object):
         self._fileify_private_key()
 
     ssh_private_key = property(_ssh_private_key, _set_ssh_private_key)
-    
+
     @property
     def ssh_private_key_file(self):
-        if self._ssh_private_key_file is None:
-            self._fileify_private_key()
-        return self._ssh_private_key_file
+        return self._fileify_private_key()
 
     def _fileify_private_key(self):
         if self._ssh_private_key is None:
             key_data = ''
         else:
             key_data = self._ssh_private_key
-        self._ssh_private_key_file = cStringIO.StringIO(key_data)
+        return cStringIO.StringIO(key_data)
 
     def __repr__(self):
         return ('%s(regexp=%r, username=%r, bool(password)=%r, '
@@ -204,6 +201,7 @@ class YamlCredentials(Credentials):
         super(YamlCredentials, self).__init__(filename)
 
     def load_credentials(self):
+        credentials = []
         try:
             if self.credentials_file is not None:
                 credentials = yaml.load(self.credentials_file)
