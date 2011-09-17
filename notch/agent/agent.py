@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-import os
-import runpy
-
 """Agent binary wrapper script.
 
 Runs the code in __main__ module like python -m in 2.7/3.1+ does.
 """
+
+import os
+import runpy
+
 
 PKG = 'notch.agent'
 

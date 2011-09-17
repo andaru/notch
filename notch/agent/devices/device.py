@@ -60,7 +60,7 @@ class Device(object):
     TIMEOUT_RESP_SHORT = 12.0  # e.g., Prompts/menus.
     TIMEOUT_RESP_LONG = 180.0  # e.g., Full configs over a hosed 2meg link.
     TIMEOUT_DISCONNECT = 10.0
-    
+
     # Devices will not attempt reconnection after experiencing these errors.
     # socket.error:
     #   errno 101: Network is unreachable.
@@ -110,13 +110,10 @@ class Device(object):
         """
         if a is None:
             self._addresses = []
-            return
-        if isinstance(a, str):
+        elif isinstance(a, str):
             self._addresses = [ipaddr.IPAddress(a)]
-            return
         else:
             self._addresses = [ipaddr.IPAddress(address) for address in a]
-            return
 
     def _set_connect_method(self, c):
         self._connect_method = c
@@ -154,13 +151,13 @@ class Device(object):
                 elif isinstance(e, pexpect.EOF):
                     last_exc.retry = True
                 logging.error('CONNECT_FAIL %s %s @ %s: [%s] %s',
-                              self.name, self._connect_method, address, 
+                              self.name, self._connect_method, address,
                               e.__class__.__name__, str(e))
             except notch.agent.errors.ConnectError, e:
                 success = False
                 last_exc = e
                 logging.error('CONNECT_FAIL %s %s @ %s: [%s] %s',
-                              self.name, self._connect_method, address, 
+                              self.name, self._connect_method, address,
                               e.__class__.__name__, str(e))
         if success:
             self._connected = True
@@ -182,6 +179,10 @@ class Device(object):
         """Sub-classes implement concrete disconnection method here."""
         raise NotImplementedError
 
+    def _command(self, command, mode=None):
+        """Implements the execution of a command on the device."""
+        raise NotImplementedError
+
     def command(self, command, mode=None):
         """Executes a command on the device."""
         return self._command(command, mode=mode)
@@ -192,22 +193,27 @@ class Device(object):
 
     def set_config(self, destination, config_data, mode=None):
         """Sets the destination configuration with supplied data."""
+        _ = destination, config_data, mode
         raise NotImplementedError
 
     def copy_file(self, source, destination, mode=None, overwrite=False):
         """Copies a file on the device's filesystem."""
+        _ = source, destination, mode, overwrite
         raise NotImplementedError
 
     def upload_file(self, source, destination, mode=None, overwrite=False):
         """Uploads a file to the device."""
+        _ = source, destination, mode, overwrite
         raise NotImplementedError
 
     def download_file(self, source, destination, mode=None, overwrite=False):
         """Downloads a file from the device."""
+        _ = source, destination, mode, overwrite
         raise NotImplementedError
 
     def delete_file(self, filename, mode=None):
         """Deletes a file from the device."""
+        _ = filename, mode
         raise NotImplementedError
 
     def lock(self):
@@ -219,6 +225,7 @@ class Device(object):
         raise NotImplementedError
 
     # Property attributes.
-    addresses = property(lambda c: c._addresses, _set_addresses)
-    connect_method = property(lambda c: c._connect_method, _set_connect_method)
-    connected = property(lambda c: c._connected)
+    addresses = property(lambda self: self._addresses, _set_addresses)
+    connect_method = property(lambda self: self._connect_method,
+                              _set_connect_method)
+    connected = property(lambda self: self._connected)
