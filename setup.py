@@ -16,6 +16,12 @@
 
 import setuptools
 
+# There is one additional pre-requisite package not available on pypi,
+# tornadorpc.  You can install it manually from github, or using this
+# command.
+
+# $ pip install -e git+https://github.com/joshmarshall/tornadorpc.git@fda3e0e4f1d2a365e0e390bd783fe7d75619d25b#egg=tornadorpc-dev
+
 setuptools.setup(
     name='notch',
     version='0.4.9',
@@ -47,7 +53,7 @@ setuptools.setup(
                  'Topic :: System :: Networking :: Monitoring',
                  'Topic :: System :: Systems Administration',
                  ],
-    packages = setuptools.find_packages(),
+    packages = setuptools.find_packages(exclude=['tests']),
     test_suite='tests',
     zip_safe = False,
     )
