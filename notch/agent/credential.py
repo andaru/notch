@@ -54,7 +54,7 @@ class Credential(object):
 
     def __init__(self, regexp=None, username=None, password=None,
                  enable_password=None, ssh_private_key=None, auto_enable=False,
-                 connect_method=None):
+                 connect_method=None, ssh_private_key_filename=None):
         """Initialiser.
 
         Args:
@@ -74,22 +74,24 @@ class Credential(object):
         self.password = password
         self.enable_password = enable_password
         self._ssh_private_key = ssh_private_key
+        self.ssh_private_key_filename = ssh_private_key_filename
 
     regexp_string = property(lambda self: self._regexp_string)
 
     def __eq__(self, other):
-        return bool(self._regexp_string == other._regexp_string and
-                    self.username == other.username and
-                    self.password == other.password and
-                    self.enable_password == other.enable_password and
-                    self._ssh_private_key == other._ssh_private_key)
+        return bool(
+            self._regexp_string == other._regexp_string and
+            self.username == other.username and
+            self.password == other.password and
+            self.enable_password == other.enable_password and
+            self._ssh_private_key == other._ssh_private_key and
+            self.ssh_private_key_filename == other.ssh_private_key_filename)
 
     def _ssh_private_key(self):
         return self._ssh_private_key
 
     def _set_ssh_private_key(self, key):
         self._ssh_private_key = key
-        self._fileify_private_key()
 
     ssh_private_key = property(_ssh_private_key, _set_ssh_private_key)
 
@@ -98,15 +100,19 @@ class Credential(object):
         return self._fileify_private_key()
 
     def _fileify_private_key(self):
-        if self._ssh_private_key is None:
-            key_data = ''
-        else:
+        # TODO(afort): Deprecate the string based form for the filename form
+        if self.ssh_private_key_filename is not None:
+            return open(self.ssh_private_key_filename, 'r')
+        elif self._ssh_private_key is not None:
             key_data = self._ssh_private_key
+        else:
+            key_data = ''
         return cStringIO.StringIO(key_data)
 
     def __repr__(self):
         return ('%s(regexp=%r, username=%r, bool(password)=%r, '
                 'bool(enable_password)=%r, bool(ssh_private_key)=%r, '
+                'ssh_private_key_filename=%r, '
                 'auto_enable=%r, connect_method=%r)'
                 % (self.__class__.__name__,
                    self.regexp_string,
@@ -114,6 +120,7 @@ class Credential(object):
                    bool(self.password),
                    bool(self.enable_password),
                    bool(self.ssh_private_key),
+                   self.ssh_private_key_filename,
                    bool(self.auto_enable),
                    self.connect_method))
 
@@ -226,15 +233,20 @@ class YamlCredentials(Credentials):
                 password = credential.get('password')
                 enable_password = credential.get('enable_password')
                 ssh_private_key = credential.get('ssh_private_key')
+                ssh_private_key_filename = credential.get(
+                    'ssh_private_key_filename')
                 if username is None:
                     raise errors.MissingFieldError(
                         'username field in credential %r missing' % credential)
-                result.append(Credential(regexp=regexp, username=username,
-                                         password=password,
-                                         enable_password=enable_password,
-                                         ssh_private_key=ssh_private_key,
-                                         auto_enable=auto_enable,
-                                         connect_method=connect_method))
+                result.append(
+                    Credential(
+                        regexp=regexp, username=username,
+                        password=password,
+                        enable_password=enable_password,
+                        ssh_private_key=ssh_private_key,
+                        auto_enable=auto_enable,
+                        connect_method=connect_method,
+                        ssh_private_key_filename=ssh_private_key_filename))
             self.credentials = result
         else:
             self.credentials = []
