@@ -44,7 +44,7 @@ from notch.agent.devices import dev_timos
 VENDOR_MAP = {'adva_fsp': dev_adva_fsp.FspDevice,
               'arbor': dev_arbor.ArborDevice,
               'cisco': dev_ios.IosDevice,
-              'ftos': dev_ftos.FtosDevice,
+              'force10': dev_ftos.FtosDevice,
               'juniper': dev_junos.JunosDevice,
               'netscreen': dev_netscreen.ScreenosDevice,
               'nortel_bay': dev_nortel_bay.BayDevice,
