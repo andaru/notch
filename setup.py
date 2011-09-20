@@ -22,24 +22,31 @@ import setuptools
 
 # $ pip install -e git+https://github.com/joshmarshall/tornadorpc.git@fda3e0e4f1d2a365e0e390bd783fe7d75619d25b#egg=tornadorpc-dev
 
+tests_require=['mox']
+
 setuptools.setup(
-    name='notch',
-    version='0.4.9',
+    name='notch.agent',
+    version='0.4.10',
     description='The Network Operator\'s Toolkit for Command-line Hacking',
     entry_points = {
         'console_scripts': [
             'notch-agent = notch.agent.agent:main'
             ]
         },
+    packages=['notch', 'notch.agent'],
+    namespace_packages=['notch'],
     install_requires=['eventlet >= 0.9.6',
                       'ipaddr >= 2.0.0',
                       'jsonrpclib',
-                      'mox',
                       'paramiko >= 1.7.6',
                       'pexpect',
                       'PyYAML >= 3.0',
-                      'tornado',
+                      'tornado == 1.2.1',
+                      'setuptools',
                       ],
+    tests_require=tests_require,
+    extras_require={'test': tests_require},
+    test_suite='tests',
     url='http://code.google.com/p/notch/',
     author='Andrew Fort',
     author_email='notch-dev@googlegroups.com',
@@ -53,7 +60,5 @@ setuptools.setup(
                  'Topic :: System :: Networking :: Monitoring',
                  'Topic :: System :: Systems Administration',
                  ],
-    packages = setuptools.find_packages(exclude=['tests']),
-    test_suite='tests',
-    zip_safe = False,
+    zip_safe=True,
     )
