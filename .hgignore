@@ -5,6 +5,7 @@ syntax: glob
 .DS_Store
 build/*
 dist/*
+*.egg
 *.egg-info
 .idea
 .coverage
