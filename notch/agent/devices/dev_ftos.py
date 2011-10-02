@@ -66,7 +66,6 @@ class FtosDevice(dev_ios.IosDevice):
         self._transport.connect(credential)
         self._login(credential.username, credential.password,
                     connect_method=connect_method)
-        self._get_prompt()
         if credential.enable_password is not None and credential.auto_enable:
             self._enable(credential.enable_password)
         self._disable_pager()
@@ -90,6 +89,8 @@ class FtosDevice(dev_ios.IosDevice):
                     self.timeouts.resp_short)
                 if not i:
                     logging.debug('Logged in to %r.', self.name)
+                    self._prompt = self._transport.match.group(0)
+                    logging.debug('Expected prompt is now: %r', self._prompt)
                 else:
                     raise notch.agent.errors.ConnectError(
                         'Password not accepted on %r.' % self.name)

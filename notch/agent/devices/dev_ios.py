@@ -49,8 +49,8 @@ class IosDevice(device.Device):
     """
 
     LOGIN_PROMPT = 'Username:'
-    PASSWORD_PROMPT = 'Password:'
-    ENABLE_PASSWORD_PROMPT = re.compile('[Pp]assword:')
+    PASSWORD_PROMPT = re.compile('[Pp]assword:')
+    ENABLE_PASSWORD_PROMPT = PASSWORD_PROMPT
     PROMPT = re.compile(r'\S+\s?[>#]')
     ERR_NOT_SETUP = 'Password required, but none set'
     ERR_FULL = 'Sorry, session limit reached'
