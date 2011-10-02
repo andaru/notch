@@ -55,10 +55,12 @@ class FtosDevice(dev_ios.IosDevice):
         connect_method = connect_method or self.connect_method
         if connect_method == 'sshv1' or connect_method is None:
             self._transport = trans_ssh.SshDeviceTransport(
-                timeouts=self.timeouts, port=port, address=str(address))
+                timeouts=self.timeouts, port=port, address=str(address),
+                command_trailer='\r\n')
         elif connect_method == 'telnet':
             self._transport = trans_telnet.TelnetDeviceTransport(
-                timeouts=self.timeouts, port=port, address=str(address))
+                timeouts=self.timeouts, port=port, address=str(address),
+                command_trailer='\r\n')
         else:
             raise ValueError('Unsupported connect_method: %r' %
                              connect_method)

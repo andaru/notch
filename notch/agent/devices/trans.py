@@ -16,7 +16,7 @@
 
 """Abstract device transport."""
 
-
+import os
 import re
 
 import pexpect
@@ -48,7 +48,8 @@ class DeviceTransport(object):
     DEFAULT_PORT = None
 
     def __init__(self, address=None, port=None, timeouts=None, strip_ansi=None,
-                 dos2unix=False, **kwargs):
+                 dos2unix=False, command_trailer=None, expect_trailer=None,
+                 pager_response=None, **kwargs):
         """Initializer.
 
         Args:
@@ -56,6 +57,10 @@ class DeviceTransport(object):
           port: An int, the TCP port to connect to. None uses the default port.
           timeouts: A device.Timeouts namedtuple, timeout values to use.
           strip_ansi: A boolean, if True, strip ANSI escape sequences.
+          command_trailer: A string, sent after the command.
+          expect_trailer: A string or regular expression, what to expect after
+            the command returns.
+          pager_response: A string, what to send back to the pager.
         """
         _ = kwargs
         self.address = address
@@ -64,6 +69,9 @@ class DeviceTransport(object):
         self.dos2unix = dos2unix
         self._c = None
         self.timeouts = timeouts
+        self.command_trailer = command_trailer or '\n'
+        self.expect_trailer = expect_trailer or '\r\n'
+        self.pager_response = pager_response or ' '
 
     def _strip_ansi(self, data):
         for reg in STRIP_ANSI:
@@ -105,16 +113,19 @@ class DeviceTransport(object):
         """Expects one of a list of regular expressions from the device."""
         raise NotImplementedError
 
-    def command(self, command, prompt, timeout=None, expect_trailer='\r\n',
-                command_trailer='\n', expect_command=True,
-                pager=None, pager_response=' ', strip_chars=None):
+    def command(self, command, prompt, timeout=None, expect_trailer=None,
+                command_trailer=None, expect_command=True,
+                pager=None, pager_response=None, strip_chars=None):
         """Executes a command.
 
         This returns any data after the CLI command sent, prior to the
         CLI prompt after the output ceases.
         """
+        expect_trailer = expect_trailer or self.expect_trailer
+        command_trailer = command_trailer or self.command_trailer
         timeout_long = timeout or self.timeouts.resp_long
         timeout_short = timeout or self.timeouts.resp_short
+        pager_response = pager_response or self.pager_response
 
         # Find the prompt and flush the expect buffer.
         self.write(command_trailer)
@@ -177,7 +188,7 @@ class DeviceTransport(object):
                 if data is not None:
                     data = data.replace('\r\n', '\n')
                     data = data.replace('\r\n', '\n')
-            if i == 0:
+            if not i:
                 # Saw the pager prompt.
                 if data is not None:
                     if self.strip_ansi:
