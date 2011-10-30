@@ -2,33 +2,44 @@ Notch Agent
 ===========
 
 The Notch Agent is the HTTP/JSON-RPC server at the core of the Notch
-system.  Run one or more copies (aka *tasks*) of the agent binary or
+system.  Run one or more copies (aka *tasks*) of the Agent binary or
 WSGI application, referring to the same configuration data (the
-configuration and credentials data files).
+configuration and credentials data files).  Keep in mind that some
+servers will run multiple processes of the application (e.g., ``mod_wsgi``'s
+``processes=`` directive), and this accounts to multiple tasks.
 
 Clients refer to these agent tasks by the address/hostname and port of the
 Agent HTTP servers, like ``notch.example.com:8443`` or
-``notch.example.com:8080``.
+``notch.example.com:8080``.  The client will look for the JSON-RPC endpoint
+at ``/JSONRPC2``, but this is configurable in the Python client library
+if your environment requires.
 
 The included Python client library can handle load balancing between 
-multiple agent tasks.  See ``notch/client/lb_transport.py`` and
-``notch/client/client.py`` (the client library itself) for details
-on how to select different load-balancing strategies (for experienced users).
+multiple agent tasks as well as geographically distributed sharding.
+See the Notch Client source code for details on how to select different
+load-balancing strategies.
 
 Application versions
 --------------------
-The Notch Agent is distributed as an application using the Tornado_
-web-server, or as a Python WSGI application function.
+The Notch Agent is distributed as a Python web-application.
+It is supplied with the Tornado_ web-server for non-production use,
+and as a Python WSGI application that can be deployed on any WSGI
+compatible web server.  At this time it has been tested on Apache2 with
+``mod_wsgi`` as well as ``uWSGI``.
 
 Stand alone
 """""""""""
 
 The standalone server (``notch-agent`` should be in your ``PATH``) can
-be used for testing or production if you have no desire for WSGI server
-infrastructure.  Start it with the ``--config`` argument pointing at your
-``notch.yaml`` file::
+be used for testing. Start it with the ``--config`` argument pointing at your
+``notch.yaml`` file, for example::
 
-  $ notch-agent --config=/path/to/notch.yaml --logging=debug
+  $ notch-agent --config=/usr/local/etc//notch.yaml --logging=debug
+
+.. note::
+   The standalone server is not for production use.  It does not execute
+   tasks in parallel. It should be used for testing your initial
+   configuration only before using a production server, such as Apache.
 
 WSGI application
 """"""""""""""""
@@ -44,20 +55,6 @@ The module containing the WSGI application is::
 Which lives in the file (likely in your ``site-packages`` directory)::
 
   notch/agent/wsgi.py
-
-Running under Spawning
-^^^^^^^^^^^^^^^^^^^^^^
-
-To run Notch under the Spawning_ HTTP server, for example, you can use
-this script to run four servers running agent tasks (thus minimising
-CPython GIL issues)::
-
-  #!/bin/bash
-  PORTS = "8080 8081 8082 8083"
-  for PORT in ${PORTS}
-  do
-    NOTCH_CONFIG=/path/to/your/notch.yaml spawn -d -p $PORT -s 2 -t 50 -u notchuser
-  done
 
 Environment variables
 ---------------------
@@ -76,7 +73,7 @@ at client or agent start-up time.
    ==================== ======= ================================================
    Environment variable Used by Description
    ==================== ======= ================================================
-   NOTCH_CONFIG         Server  The path to the configuration file 
+   NOTCH_CONFIG         Agent   The path to the configuration file
                                 (default: None).
    NOTCH_AGENTS	        Client  A comma-separated list of agent host:port
                                 addresses. (default: None).

@@ -6,8 +6,7 @@ Agents expose a proxy interface to router and switch command-line
 interfaces (CLI) for client tool use, as well as managing device
 connections and authentication data.
 
-See the Google Code `project page`__ for Notch for more development
-information.
+See the Notch `project page`__ on Google Code for development information.
 
 Contents:
 

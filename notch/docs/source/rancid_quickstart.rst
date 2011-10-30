@@ -49,8 +49,10 @@ Devices like ``acc1.bne`` and ``acc400.mel`` will use the first credential,
 while all other devices will use the second credential.
 
 .. note:: A ``regexp: .*`` wildcard record is not required. Your
-   agents will fail closed without one.  Configuring your agents 
-   without wildcard records is a recommended security precaution.
+   Agents will merely fail to connect to devices that don't match
+   any other record. Configuring your Agents without wildcard
+   authentication records is a recommended security precaution to avoid
+   password leakage to other devices.
 
 Converting the ``.cloginrc`` file
 ---------------------------------
