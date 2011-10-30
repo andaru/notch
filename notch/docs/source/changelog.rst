@@ -9,7 +9,7 @@ Version 0.4.3 (Jan 20 2011)
         * Nortel ESR: ``nortel_esr``
         * Nortel ESU: ``nortel_esu``
         * Nortel/Bay BaySwitch: ``nortel_bay``
-    * Harmonise API for telnet, exoect+Paramiko transports.
+    * Harmonise API for telnet, expect+Paramiko transports.
 
 
 Version 0.4 (Jul 22 2010)
@@ -34,7 +34,7 @@ Version 0.3 (May 27 2010)
         * DASAN/Siemens PON/ONU (running NOS): ``nos``
         * BATM/Telco/Temarc switches (running BiNOS): ``telco``
     * New abstract transport for building device modules based on
-      SSHv2 and either exec-sessions or expect'ed login-sesions.
+      SSHv2 and either exec-sessions or expect'ed login-sessions.
     * Devices can support multiple connection methods.
     * Devices will retry in cases like EOF errors.
     * New ``devices_info`` API method, similar to ``devices_matching``,
