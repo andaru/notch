@@ -8,13 +8,12 @@ you can write powerful network management applications using the
 included Python library or from other languages by using the JSON-RPC
 interface.
 
-For example, to get the version information from every device on your
-network (via a Notch Agent running at ``localhost:8080``)::
+For example, to get the version information from every cisco-ish
+device on your network (via a Notch Agent running at ``localhost:8080``)::
 
     #!/usr/bin/env python
 
     import notch.client
-
 
     def callback(request):
       """Called by the Notch Client when a request is complete."""
@@ -44,22 +43,31 @@ network (via a Notch Agent running at ``localhost:8080``)::
 Installation
 ------------
 
-If you've downloaded the software already (which seems likely given you're
-readying this), you can install Notch like so:
+.. note::
+   As of version 0.5, Notch is split into separate ``notch.client``
+   and ``notch.agent`` pypi packages sharing a namespace package
+   ``notch``.
 
-    $ python ./setup.py install
+   Users upgrading from earlier versions must remove all existing Notch
+   packages before proceeding with installation::
 
-Alternatively, you can use PIP to install both Notch, and the Notch Client
-library:
+   $ pip uninstall notch
+   $ pip uninstall notch.client
+   $ pip uninstall notch.agent
 
-    $ pip install notch
+   Also check your Python ``site-packages`` directories to ensure you
+   do not have any ``notch*`` files or directories.
+
+Use ``pip`` to install both the Notch Agent or Client library.
+
+You'll need both packages to start with, but in larger installations,
+only machines acting as Agents require the ``notch.agent`` package.
+
+    $ pip install notch.agent
     $ pip install notch.client
 
-Please do not use easy_install to install notch, as this will use an .egg
-file, making a notch.client installation unreachable.  A fix for this may
-likely later change the `notch` package name to `notch.agent`.  For now,
-don't use easy_install!
-
+You can also use ``easy_install``, but we don't recommend that. If you don't
+have ``pip``, install it with ``easy_install`` first.
 
 Configuration
 -------------
@@ -68,6 +76,13 @@ The Notch Agent requires some configuration to get started, and things
 are easiest if you already use the RANCID system, as the Notch Agent
 will read its router.db configuration file to populate its inventory.
 
-Then, you can start a Notch Agent using the following::
+Then, you can start a Notch Agent using the built-in testing server::
 
     $ notch-agent --config=/path/to/your/notch.yaml
+
+The built-in testing server does not support parallel operation, so you
+must use a WSGI compatible server for production operation.  Apache2 with
+``mod_wsgi`` is used for many installations and an example configuration
+can be found in ``config/notch-mod_wsgi.sample.conf``.  The WSGI application
+object itself is defined in ``wsgi/notch.wsgi``.
+
