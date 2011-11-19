@@ -8,6 +8,11 @@ you can write powerful network management applications using the
 included Python library or from other languages by using the JSON-RPC
 interface.
 
+.. note::
+   This package provides just the Notch Agent. A basic installation on
+   a single machine also requires the client library, available in the
+   ``notch.client`` package.
+
 For example, to get the version information from every cisco-ish
 device on your network (via a Notch Agent running at ``localhost:8080``)::
 
@@ -65,6 +70,10 @@ only machines acting as Agents require the ``notch.agent`` package.
 
     $ pip install notch.agent
     $ pip install notch.client
+
+This will install all but one dependency, which can be then installed using::
+
+    $ pip install -e git+https://github.com/joshmarshall/tornadorpc.git@fda3e0e4#egg=tornadorpc-dev
 
 You can also use ``easy_install``, but we don't recommend that. If you don't
 have ``pip``, install it with ``easy_install`` first.

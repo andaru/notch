@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import setuptools
 
 # There is one additional pre-requisite package not available on pypi,
@@ -22,13 +23,21 @@ import setuptools
 
 # $ pip install -e git+https://github.com/joshmarshall/tornadorpc.git@fda3e0e4f1d2a365e0e390bd783fe7d75619d25b#egg=tornadorpc-dev
 
-tests_require=['mox']
+tests_require = ['mox']
+
+try:
+    f = open(os.path.join(os.path.dirname(__file__), 'README.rst'))
+    long_description = f.read()
+except Exception:
+    long_description = ''
+
 
 setuptools.setup(
     name='notch.agent',
-    version='0.4.10',
+    version='0.5',
     description='The Network Operator\'s Toolkit for Command-line Hacking',
-    entry_points = {
+    long_description=long_description,
+    entry_points={
         'console_scripts': [
             'notch-agent = notch.agent.agent:main'
             ]
